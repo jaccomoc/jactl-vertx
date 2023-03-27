@@ -1,0 +1,26 @@
+plugins {
+  id 'java'
+}
+
+group   'jacsal'
+version '1.0-SNAPSHOT'
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+dependencies {
+  implementation('jacsal:jacsal:1.0-SNAPSHOT') {
+    exclude group:'org.ow2.asm'
+  }
+  implementation group: 'io.vertx', name: 'vertx-core', version: '4.4.0'
+  //testImplementation 'jacsal:jacsal:1.0-SNAPSHOT:tests'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+  testImplementation 'io.vertx:vertx-junit5:4.4.0'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+test {
+  useJUnitPlatform()
+}
