@@ -1,5 +1,6 @@
 plugins {
   id 'java'
+  id 'maven-publish'
 }
 
 group   'jacsal'
@@ -11,16 +12,57 @@ repositories {
 }
 
 dependencies {
-  implementation('jacsal:jacsal:1.0-SNAPSHOT') {
-    exclude group:'org.ow2.asm'
-  }
-  implementation group: 'io.vertx', name: 'vertx-core', version: '4.4.0'
-  //testImplementation 'jacsal:jacsal:1.0-SNAPSHOT:tests'
+  implementation group: 'jacsal',   name: 'jacsal',           version: '1.0-SNAPSHOT'
+  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.4.0'
+  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.4.0'
+  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.4.0'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.0.1'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
   testImplementation 'io.vertx:vertx-junit5:4.4.0'
   testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+
+  def isMacOS = System.getProperty('os.name').startsWith('Mac OS X')
+  def architecture = System.getProperty('os.arch').toLowerCase()
+  if (isMacOS && architecture == 'aarch64') {
+    implementation 'io.netty:netty-resolver-dns-native-macos:4.1.90.Final:osx-aarch_64'
+  }
 }
 
 test {
   useJUnitPlatform()
 }
+
+task testJar(type: Jar) {
+  duplicatesStrategy 'exclude'
+  manifest {
+    attributes "Main-Class": "jacsal.Jacsal"
+  }
+
+  from sourceSets.test.output
+  from {
+    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+
+  archiveClassifier = 'tests'
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+    }
+
+    mavenTests(MavenPublication) {
+      groupId project.group
+      artifactId "${project.name}"
+      version project.version
+      artifact testJar
+    }
+  }
+  repositories {
+    mavenLocal()
+  }
+}
+
+tasks.generateMetadataFileForMavenJavaPublication.mustRunAfter(testJar)
+tasks.publishMavenTestsPublicationToMavenLocal.dependsOn(jar)

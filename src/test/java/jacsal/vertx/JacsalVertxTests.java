@@ -24,7 +24,7 @@ public class JacsalVertxTests extends BaseTest {
 
   @BeforeEach
   void prepare(VertxTestContext testContext) {
-    vertx = rtoc.vertx();
+    init(rtoc.vertx());
     testContext.completeNow();
   }
 
@@ -150,8 +150,7 @@ public class JacsalVertxTests extends BaseTest {
 
   @AfterEach
   void cleanUp(VertxTestContext testContext) {
-    assertTrue(testCount > 0);
-    assertEquals(testCount, counter);
+    super.cleanUp();
     testContext.completeNow();
   }
 }

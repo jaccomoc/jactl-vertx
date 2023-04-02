@@ -15,7 +15,9 @@
  *
  */
 
-package jacsal.vertx;import io.vertx.core.Context;
+package jacsal.vertx;
+
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import jacsal.JacsalEnv;
 
@@ -25,9 +27,21 @@ import jacsal.JacsalEnv;
  */
 public class JacsalVertxEnv implements JacsalEnv {
   Vertx vertx;
+  static Vertx singletonVertx;
+
+  public JacsalVertxEnv() {
+    if (singletonVertx == null) {
+      singletonVertx = Vertx.vertx();
+    }
+    vertx = singletonVertx;
+  }
 
   public JacsalVertxEnv(Vertx vertx) {
     this.vertx = vertx;
+  }
+
+  public Vertx vertx() {
+    return vertx;
   }
 
   @Override
