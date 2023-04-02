@@ -103,7 +103,7 @@ functionClasses  = [ 'jacsal.vertx.JsonFunctions',
                      'jacsal.vertx.example.VertxFunctions' ]
 ```
 
-> **Note**
+> **Note**<br/>
 > The `jacsal-vertx` test jar is built as an "uber" jar and includes the dependencies it needs (including the
 > Vert.x libraries) so we don't need to separately list the Vert.x jars as well.
 
