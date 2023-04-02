@@ -103,6 +103,10 @@ functionClasses  = [ 'jacsal.vertx.JsonFunctions',
                      'jacsal.vertx.example.VertxFunctions' ]
 ```
 
+> **Note**
+> The `jacsal-vertx` test jar is built as an "uber" jar and includes the dependencies it needs (including the
+> Vert.x libraries) so we don't need to separately list the Vert.x jars as well.
+
 ## Functions
 
 There are currently two Jacsal methods for converting to/from JSON provided by the `jacsal-vertx` library.
