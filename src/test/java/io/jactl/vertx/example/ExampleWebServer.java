@@ -15,19 +15,19 @@
  *
  */
 
-package jacsal.vertx.example;
+package io.jactl.vertx.example;
 
+import io.jactl.vertx.JactlVertxEnv;
+import io.jactl.vertx.JsonFunctions;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
-import jacsal.Compiler;
-import jacsal.JacsalContext;
-import jacsal.JacsalError;
-import jacsal.JacsalScript;
-import jacsal.runtime.DieError;
-import jacsal.vertx.JacsalVertxEnv;
-import jacsal.vertx.JsonFunctions;
+import io.jactl.Compiler;
+import io.jactl.JactlContext;
+import io.jactl.JactlError;
+import io.jactl.JactlScript;
+import io.jactl.runtime.DieError;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -39,11 +39,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * <pr>An example of a Vertx based web server that executes Jacsal scripts and returns the result to
+ * <pr>An example of a Vertx based web server that executes Jactl scripts and returns the result to
  * the caller. It listens on localhost on a random port (it prints out the port at startup, so you
  * can work out how to send requests to it). You can bind to a specific port by passing the port
  * on the command line.</p>
- * <p>For a URL like "http://localhost:12345/xyz" it will look for a script called "scripts/xyz.jacsal"
+ * <p>For a URL like "http://localhost:12345/xyz" it will look for a script called "scripts/xyz.jactl"
  * in the current directory where the server is running. If such a script exists it takes the JSON body
  * of the request, binds it to a global variable called "request", and then invokes the script.
  * The return value of the script is expected to be a Map and will be used as the body of the response
@@ -56,7 +56,7 @@ import java.util.function.Function;
  *   <dt><b>startTime</b></dt><dd>The time (in milliseconds) when server was started</dd>
  * </dl>
  * <p>For example, if we wanted to be able to offer a service at "http://localhost:12345/wordCount" that
- * counted the words in some text then we would create a script called scripts/wordCount.jacsal:</p>
+ * counted the words in some text then we would create a script called scripts/wordCount.jactl:</p>
  * <pre>
  * // request should be of form [text:'some text to be word counted']
  *
@@ -79,7 +79,7 @@ public class ExampleWebServer {
 
   private static Map<String,Object> globals;
   private static Vertx              vertx;
-  private static JacsalContext      jacsalContext;
+  private static JactlContext      jactlContext;
 
   // Map of scripts keyed on URI
   private static Map<String, ScriptInfo> scripts = new ConcurrentHashMap<>();
@@ -96,9 +96,9 @@ public class ExampleWebServer {
                      "startTime", START_TIME);
 
     vertx = Vertx.vertx();
-    JacsalVertxEnv env = new JacsalVertxEnv(vertx);
+    JactlVertxEnv env = new JactlVertxEnv(vertx);
     VertxFunctions.registerFunctions(env);
-    jacsalContext = JacsalContext.create().environment(env).build();
+    jactlContext = JactlContext.create().environment(env).build();
 
     var server = vertx.createHttpServer();
 
@@ -152,7 +152,7 @@ public class ExampleWebServer {
   }
 
   /**
-   * Look for a script called scriptName.jacsal in directory called scripts and compile it if it
+   * Look for a script called scriptName.jactl in directory called scripts and compile it if it
    * exists. Cache the result so next time we don't have to recompile.
    * @param scriptName  the "name" of the script (corresponds to the uri of the request)
    * @param handler     the handler to invoke once we have a compiled script
@@ -174,18 +174,18 @@ public class ExampleWebServer {
 
   /**
    * Compile script with given name under the SCRIPT_DIR directory.
-   * @param name        the name (suffix of ".jacsal" will be applied to generate file name)
+   * @param name        the name (suffix of ".jactl" will be applied to generate file name)
    * @return a ScriptInfo entry with script and modification time set
    * @throws Exception  on error
    */
   private static ScriptInfo compileScript(String name) {
     try {
       long modificationTime = fileModificationTime(name);
-      String source = Files.readString(Path.of(SCRIPT_DIR, name + ".jacsal"));
-      var script = Compiler.compileScript(source, jacsalContext, globals);
+      String source = Files.readString(Path.of(SCRIPT_DIR, name + ".jactl"));
+      var script = Compiler.compileScript(source, jactlContext, globals);
       return new ScriptInfo(name, script, modificationTime);
     }
-    catch (JacsalError e) {
+    catch (JactlError e) {
       return new ScriptInfo(name, 501, e);
     }
     catch (Exception e) {
@@ -213,12 +213,12 @@ public class ExampleWebServer {
   }
 
   private static long fileModificationTime(String name) {
-    return new File(SCRIPT_DIR, name + ".jacsal").lastModified();
+    return new File(SCRIPT_DIR, name + ".jactl").lastModified();
   }
 
   static class ScriptInfo {
     String       name;               // The script "name" (corresponds to the uri)
-    JacsalScript script;             // The compiled script
+    JactlScript script;             // The compiled script
     long         modificationTime;   // File modification time
     long         lastCheckTime;      // Time we last checked for file modification
 
@@ -228,7 +228,7 @@ public class ExampleWebServer {
     int          statusCode = 200;
     Exception    error;
 
-    ScriptInfo(String name, JacsalScript script, long time) {
+    ScriptInfo(String name, JactlScript script, long time) {
       this.name             = name;
       this.script           = script;
       this.modificationTime = time;

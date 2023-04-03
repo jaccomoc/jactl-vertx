@@ -15,7 +15,7 @@
  *
  */
 
-package jacsal.vertx;
+package io.jactl.vertx;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,11 +23,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
-import jacsal.JacsalEnv;
-import jacsal.JacsalType;
-import jacsal.runtime.BuiltinFunctions;
-import jacsal.runtime.JacsalFunction;
-import jacsal.runtime.RuntimeError;
+import io.jactl.JactlEnv;
+import io.jactl.JactlType;
+import io.jactl.runtime.BuiltinFunctions;
+import io.jactl.runtime.JactlFunction;
+import io.jactl.runtime.RuntimeError;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -44,17 +44,17 @@ public class JsonFunctions {
   /**
    * Initialisation: registers the methods.
    */
-  public static void registerFunctions(JacsalEnv notused) {
+  public static void registerFunctions(JactlEnv notused) {
     // Ensure that we use BigDecimal for decoding floating point numbers and make sure when
     // encoding BigDecimal to JSON that we don't use scientific notation.
     ObjectMapper mapper = ((io.vertx.core.json.jackson.DatabindCodec)io.vertx.core.json.Json.CODEC).mapper();
     mapper.enable(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN)
           .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
-    BuiltinFunctions.registerFunction(new JacsalFunction(JacsalType.ANY)
+    BuiltinFunctions.registerFunction(new JactlFunction(JactlType.ANY)
                                         .name("toJson")
                                         .impl(JsonFunctions.class, "toJson"));
-    BuiltinFunctions.registerFunction(new JacsalFunction(JacsalType.STRING)
+    BuiltinFunctions.registerFunction(new JactlFunction(JactlType.STRING)
                                         .name("fromJson")
                                         .impl(JsonFunctions.class, "fromJson"));
   }
@@ -63,8 +63,8 @@ public class JsonFunctions {
    * Deregister the functions/methods. This allows us to run multiple tests and register/deregister each time.
    */
   public static void deregisterFunctions() {
-    BuiltinFunctions.deregisterFunction(JacsalType.ANY,    "toJson");
-    BuiltinFunctions.deregisterFunction(JacsalType.STRING, "fromJson");
+    BuiltinFunctions.deregisterFunction(JactlType.ANY,    "toJson");
+    BuiltinFunctions.deregisterFunction(JactlType.STRING, "fromJson");
 
     // Must reset these fields, or we will get an error when we try to re-register the functions
     toJsonData = fromJsonData = null;

@@ -1,12 +1,29 @@
-package jacsal.vertx;
+/*
+ * Copyright © 2022,2023 James Crawford
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package io.jactl.vertx;
 
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
-import jacsal.Compiler;
-import jacsal.JacsalContext;
-import jacsal.JacsalScript;
-import jacsal.Utils;
-import jacsal.vertx.example.VertxFunctions;
+import io.jactl.Compiler;
+import io.jactl.JactlContext;
+import io.jactl.JactlScript;
+import io.jactl.Utils;
+import io.jactl.vertx.example.VertxFunctions;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -16,21 +33,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class BaseTest {
   protected int                debugLevel  = 0;
-  protected String             packageName = Utils.DEFAULT_JACSAL_PKG;
+  protected String             packageName = Utils.DEFAULT_JACTL_PKG;
   protected Map<String,Object> globals     = new HashMap<>();
   protected boolean            replMode    =  false;
 
   protected Vertx vertx;
-  protected JacsalVertxEnv jacsalEnv;
+  protected JactlVertxEnv jactlEnv;
 
   protected int testCount;
   protected int counter = 0;
 
   protected void init(Vertx vertx) {
     this.vertx = vertx;
-    jacsalEnv = new JacsalVertxEnv(vertx);
-    JsonFunctions.registerFunctions(jacsalEnv);
-    VertxFunctions.registerFunctions(jacsalEnv);
+    jactlEnv = new JactlVertxEnv(vertx);
+    JsonFunctions.registerFunctions(jactlEnv);
+    VertxFunctions.registerFunctions(jactlEnv);
   }
 
   protected void cleanUp() {
@@ -109,8 +126,8 @@ public class BaseTest {
     Function<Object,String> notErrorMsg   = obj -> "Test " + counter + ": unexpected value '" + obj + "'\nExpected error: '" + finalExpected + "' for test: " + scriptCode;
 
     try {
-      JacsalContext jacsalContext = JacsalContext.create()
-                                                 .environment(jacsalEnv)
+      JactlContext jactlContext = JactlContext.create()
+                                                 .environment(jactlEnv)
                                                  .evaluateConstExprs(true)
                                                  .replMode(replMode)
                                                  .debug(debugLevel)
@@ -118,9 +135,9 @@ public class BaseTest {
 
       var bindings = createGlobals();
 
-      classCode.forEach(code -> compileClass(code, jacsalContext, packageName));
+      classCode.forEach(code -> compileClass(code, jactlContext, packageName));
 
-      var    compiled = compileScript(scriptCode, jacsalContext, packageName, bindings);
+      var    compiled = compileScript(scriptCode, jactlContext, packageName, bindings);
       Thread thread   = Thread.currentThread();
       compiled.run(bindings, result -> {
         testContext.verify(() -> {
@@ -158,12 +175,12 @@ public class BaseTest {
     }
   }
 
-  public void compileClass(String source, JacsalContext jacsalContext, String packageName) {
-    Compiler.compileClass(source, jacsalContext, packageName);
+  public void compileClass(String source, JactlContext jactlContext, String packageName) {
+    Compiler.compileClass(source, jactlContext, packageName);
   }
 
-  public JacsalScript compileScript(String source, JacsalContext jacsalContext, String packageName, Map<String, Object> bindings) {
-    return Compiler.compileScript(source, jacsalContext, packageName, bindings);
+  public JactlScript compileScript(String source, JactlContext jactlContext, String packageName, Map<String, Object> bindings) {
+    return Compiler.compileScript(source, jactlContext, packageName, bindings);
   }
 
   protected Map<String, Object> createGlobals() {

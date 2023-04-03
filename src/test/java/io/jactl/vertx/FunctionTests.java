@@ -15,7 +15,7 @@
  *
  */
 
-package jacsal.vertx;
+package io.jactl.vertx;
 
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;

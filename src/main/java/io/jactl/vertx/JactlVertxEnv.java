@@ -15,28 +15,28 @@
  *
  */
 
-package jacsal.vertx;
+package io.jactl.vertx;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
-import jacsal.JacsalEnv;
+import io.jactl.JactlEnv;
 
 /**
- * Jacsal execution environment for Vert.x based applications.
+ * Jactl execution environment for Vert.x based applications.
  * This delegates scheduling of events (blocking and non-blocking) to Vertx.
  */
-public class JacsalVertxEnv implements JacsalEnv {
+public class JactlVertxEnv implements JactlEnv {
   Vertx vertx;
   static Vertx singletonVertx;
 
-  public JacsalVertxEnv() {
+  public JactlVertxEnv() {
     if (singletonVertx == null) {
       singletonVertx = Vertx.vertx();
     }
     vertx = singletonVertx;
   }
 
-  public JacsalVertxEnv(Vertx vertx) {
+  public JactlVertxEnv(Vertx vertx) {
     this.vertx = vertx;
   }
 

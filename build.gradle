@@ -3,7 +3,7 @@ plugins {
   id 'maven-publish'
 }
 
-group   'jacsal'
+group   'io.jactl'
 version '1.0-SNAPSHOT'
 
 repositories {
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-  implementation group: 'jacsal',   name: 'jacsal',           version: '1.0-SNAPSHOT'
+  implementation group: 'io.jactl', name: 'jactl',            version: '1.0-SNAPSHOT'
   implementation group: 'io.vertx', name: 'vertx-core',       version: '4.4.0'
   implementation group: 'io.vertx', name: 'vertx-web',        version: '4.4.0'
   implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.4.0'
@@ -34,9 +34,6 @@ test {
 
 task testJar(type: Jar) {
   duplicatesStrategy 'exclude'
-  manifest {
-    attributes "Main-Class": "jacsal.Jacsal"
-  }
 
   from sourceSets.test.output
   from {

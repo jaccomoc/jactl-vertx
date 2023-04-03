@@ -15,21 +15,22 @@
  *
  */
 
-package jacsal.vertx.example;
+package io.jactl.vertx.example;
 
+import io.jactl.vertx.BaseTest;
+import io.jactl.vertx.JactlVertxEnv;
+import io.jactl.vertx.JsonFunctions;
 import io.vertx.ext.web.client.WebClient;
-import jacsal.JacsalEnv;
-import jacsal.runtime.BuiltinFunctions;
-import jacsal.runtime.Continuation;
-import jacsal.runtime.JacsalFunction;
-import jacsal.runtime.RuntimeError;
-import jacsal.vertx.JacsalVertxEnv;
-import jacsal.vertx.JsonFunctions;
+import io.jactl.JactlEnv;
+import io.jactl.runtime.BuiltinFunctions;
+import io.jactl.runtime.Continuation;
+import io.jactl.runtime.JactlFunction;
+import io.jactl.runtime.RuntimeError;
 
 import java.util.Map;
 
 /**
- * An example Jacsal function.
+ * An example Jactl function.
  *
  * It registers one global function:
  * <dl>
@@ -42,15 +43,15 @@ public class VertxFunctions {
 
   /**
    * Initialisation: registers the functions and methods and performs some initialisation.
-   * NOTE: existence of a method called registerFunctions(JacsalEnv env) allows us to configure
-   *       the REPL and the command line Jacsal script runner with these functions by adding
-   *       this class and library to the .jacsalrc file.
-   * @param env  the Jacsal env (which will be a JacsalVertxEnv)
+   * NOTE: existence of a method called registerFunctions(JactlEnv env) allows us to configure
+   *       the REPL and the command line Jactl script runner with these functions by adding
+   *       this class and library to the .jactlrc file.
+   * @param env  the Jactl env (which will be a JactlVertxEnv)
    */
-  public static void registerFunctions(JacsalEnv env) {
-    webClient = WebClient.create(((JacsalVertxEnv)env).vertx());
+  public static void registerFunctions(JactlEnv env) {
+    webClient = WebClient.create(((JactlVertxEnv)env).vertx());
 
-    BuiltinFunctions.registerFunction(new JacsalFunction()
+    BuiltinFunctions.registerFunction(new JactlFunction()
                                         .name("sendReceiveJson")
                                         .param("url")
                                         .param("request")
@@ -59,7 +60,7 @@ public class VertxFunctions {
 
   /**
    * Deregister the functions/methods. This allows us to run multiple tests and register/deregister each time.
-   * Only used by JUnit tests (see {@link jacsal.vertx.BaseTest}).
+   * Only used by JUnit tests (see {@link BaseTest}).
    */
   public static void deregisterFunctions() {
     BuiltinFunctions.deregisterFunction("sendReceive");

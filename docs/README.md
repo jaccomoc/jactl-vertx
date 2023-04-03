@@ -1,15 +1,15 @@
-# Jacsal-Vertx
+# Jactl-Vertx
 
-The Jacsal-Vertx project is a project that adds a [Vert.x](https://vertx.io/) based execution environment
-to the [Jacsal](https://github.com/jaccomoc/jacsal) scripting language along with some additional methods
-and an example function that shows how to extend Jacsal with your own application specific functions/methods.
+The Jactl-Vertx project is a project that adds a [Vert.x](https://vertx.io/) based execution environment
+to the [Jactl](https://github.com/jaccomoc/jactl) scripting language along with some additional methods
+and an example function that shows how to extend Jactl with your own application specific functions/methods.
 
 # Building
 
 ## Requirements
 
 * Java 11+
-* Jacsal 1.0
+* Jactl 1.0
 * Gradle 8.0.2
 * Vert.x 4.4.0
 * jackson-databind 2.0.1
@@ -17,12 +17,12 @@ and an example function that shows how to extend Jacsal with your own applicatio
 ## Build
 
 ```shell
-git clone https://github.com/jaccomoc/jacsal-vertx.git
-cd jacsal-vertx
+git clone https://github.com/jaccomoc/jactl-vertx.git
+cd jactl-vertx
 ./gradlew build testJar
 ```
 
-That will build `jacsal-vertx-1.0.jar` and `jacsal-vertx-1.0-SNAPSHOT-tests.jar` under the `build/libs` directory.
+That will build `jactl-vertx-1.0.jar` and `jactl-vertx-1.0-SNAPSHOT-tests.jar` under the `build/libs` directory.
 
 To push to your Maven repository you can use `publishToMaven`:
 ```shell
@@ -33,48 +33,48 @@ To push to your Maven repository you can use `publishToMaven`:
 
 To include the library in your application add the following gradle dependency:
 ```groovy
-implementation group:'jacsal', name:'jacsal-vertx', version:'1.0'
+implementation group:'io.jactl', name:'jactl-vertx', version:'1.0'
 ```
 
 If you want to use the example `sendReceiveJson()` function then also include a dependency on the `tests` jar:
 ```groovy
-implementation group:'jacsal', name:'jacsal-vertx', version:'1.0', classifier:'tests'
+implementation group:'io.jactl', name:'jactl-vertx', version:'1.0', classifier:'tests'
 ```
 
-### Jacsal Environment Class
+### Jactl Environment Class
 
-The `jacsal.vertx.JacsalVertxEnv` class provides a bridge between the Jacsal runtime and the Vert.x runtime
-environment to allow Jacsal on Vert.x event-loop threads and schedule blocking work on Vert.x blocking worker
+The `io.jactl.vertx.JactlVertxEnv` class provides a bridge between the Jactl runtime and the Vert.x runtime
+environment to allow Jactl on Vert.x event-loop threads and schedule blocking work on Vert.x blocking worker
 threads.
 
-It should be constructed by passing a `Vertx` instance and the `JacsaVertxEnv` should be set on the `JacsalContext`
-object that you create using the `JacsalContext.environment()` method.
+It should be constructed by passing a `Vertx` instance and the `JacsaVertxEnv` should be set on the `JactlContext`
+object that you create using the `JactlContext.environment()` method.
 See next section for an example.
 
 ### Application Integration
 
-To add these addtional functions/methods to your Jacsal based application you will need to make sure that the
-functions/methods are registered with the Jacsal runtime by invoking `jacsal.vertx.JsonFunctions.registerFunctions()`
+To add these addtional functions/methods to your Jactl based application you will need to make sure that the
+functions/methods are registered with the Jactl runtime by invoking `io.jactl.vertx.JsonFunctions.registerFunctions()`
 (for the JSON methods) and, if you want to use the example `sendReceiveJson()` function, invoking
-`jacsal.vertx.example.VertxFunctions.registerFunctions()`.
+`example.io.jactl.vertx.VertxFunctions.registerFunctions()`.
 
-Both these methods should be passed the instance of the `jacsal.vertx.JacsalVertxEnv` class that is also passed to
-the `JacsalContext.environment()` method when constructing your `JacsalContext` object.
+Both these methods should be passed the instance of the `io.jactl.vertx.JactlVertxEnv` class that is also passed to
+the `JactlContext.environment()` method when constructing your `JactlContext` object.
 
-For example, here we construct the `JacsalVertxEnv` object and pass it to the `registerFunctions()` calls as well
-as setting it on our `JacsalContext` object:
+For example, here we construct the `JactlVertxEnv` object and pass it to the `registerFunctions()` calls as well
+as setting it on our `JactlContext` object:
 ```java
 class MyVertxApp {
   Vertx vertx;
   public void init() {
     this.vertx         = Vertx.vertx();
-    JacsalVertxEnv env = new JacsalVertxEnv(vertx);
+    JactlVertxEnv env = new JactlVertxEnv(vertx);
     
     // Register functions/methods
     JsonFunctions.registerFunctions(env);
     VertxFunctions.registerFunctions(env);   // If using example sendReceiveJson() method
     
-    JacsalContext context = JacsalContext.create()
+    JactlContext context = JactlContext.create()
                                          .environment(env)
                                          .build();
     ...
@@ -82,39 +82,39 @@ class MyVertxApp {
 }
 ```
 
-### Jacsal REPL and Jacsal Commandline Integration
+### Jactl REPL and Jactl Commandline Integration
 
-To include these methods/functions in your Jacsal REPL or Jacsal commandline scripts you can set your `~/.jacsalrc`
+To include these methods/functions in your Jactl REPL or Jactl commandline scripts you can set your `~/.jactlrc`
 configuration file to include something like the following:
 
 ```groovy
-def VERS = '1.0'                                                  // The jacsal-vertx version to use
-def LIBS = "~/.m2/repository/jacsal/jacsal-vertx/${VERS}"         // Location of the jars
+def VERS = '1.0'                                                  // The jactl-vertx version to use
+def LIBS = "~/.m2/repository/io/jactl/jactl-vertx/${VERS}"         // Location of the jars
 
 // Specify the Vertx based environment class to use
-environmentClass = 'jacsal.vertx.JacsalVertxEnv'
+environmentClass = 'io.jactl.vertx.JactlVertxEnv'
 
-// List the extra jacsal-vertx jars
-extraJars        = [ "$LIBS/jacsal-vertx-${VERS}.jar",
-                     "$LIBS/jacsal-vertx-${VERS}-tests.jar" ]
+// List the extra jactl-vertx jars
+extraJars        = [ "$LIBS/jactl-vertx-${VERS}.jar",
+                     "$LIBS/jactl-vertx-${VERS}-tests.jar" ]
 
 // List the function registration classes
-functionClasses  = [ 'jacsal.vertx.JsonFunctions',
-                     'jacsal.vertx.example.VertxFunctions' ]
+functionClasses  = [ 'io.jactl.vertx.JsonFunctions',
+                     'example.io.jactl.vertx.VertxFunctions' ]
 ```
 
 > **Note**<br/>
-> The `jacsal-vertx` test jar is built as an "uber" jar and includes the dependencies it needs (including the
+> The `jactl-vertx` test jar is built as an "uber" jar and includes the dependencies it needs (including the
 > Vert.x libraries) so we don't need to separately list the Vert.x jars as well.
 
 ## Functions
 
-There are currently two Jacsal methods for converting to/from JSON provided by the `jacsal-vertx` library.
-In addition, an example of a Jacsal global function called `sendReceiveJson()` is provided in the `tests` jar.
+There are currently two Jactl methods for converting to/from JSON provided by the `jactl-vertx` library.
+In addition, an example of a Jactl global function called `sendReceiveJson()` is provided in the `tests` jar.
 
 ### Object.toJson()
 
-To convert a Jacsal object to a JSON string use the method called `toJson()`:
+To convert a Jactl object to a JSON string use the method called `toJson()`:
 ```groovy
 > [name:'Fred Smith', address:['123 High St', 'Faraway', 'Australia']].toJson()
 {"name":"Fred Smith","address":["123 High St","Faraway","Australia"]}
@@ -126,7 +126,7 @@ To convert a Jacsal object to a JSON string use the method called `toJson()`:
 ### String.fromJson()
 
 The `fromJson()` method is a new method for the String class which, given a JSON string, will convert from that
-string back in to a Jacsal object:
+string back in to a Jactl object:
 ```groovy
 > '{"name":"Jane Doe","userId":"janed"}'.fromJson()
 [name:'Jane Doe', userId:'janed']
@@ -151,7 +151,7 @@ true
 
 ### sendReceiveJson(String url, def request)
 
-The `sendReceiveJson()` function is an example function provided to show how to extend Jacsal with your own
+The `sendReceiveJson()` function is an example function provided to show how to extend Jactl with your own
 global functions and methods.
 It will send a JSON encoded request to a remote URL and wait for the response.
 It does a `POST` and passes the JSON as the request body to the remote server and then decodes the JSON response
@@ -177,8 +177,8 @@ And an example with named args:
 Here are some examples where an error occurrs:
 ```groovy
 > sendReceiveJson('http://localhost:58476/bad', [arg:'abc'])
-[errorMsg:'java.nio.file.NoSuchFileException: scripts/bad.jacsal', statusCode:404]
+[errorMsg:'java.nio.file.NoSuchFileException: scripts/bad.jactl', statusCode:404]
 > sendReceiveJson(url:'http://localhost:58476/wordCount', request:[bad:'here are some more words to be counted'])
-[errorMsg:'jacsal.runtime.DieError: Missing value for text field', statusCode:400]
+[errorMsg:'jactl.runtime.DieError: Missing value for text field', statusCode:400]
 ```
 
