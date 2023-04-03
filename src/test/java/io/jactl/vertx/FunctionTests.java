@@ -17,6 +17,7 @@
 
 package io.jactl.vertx;
 
+import io.jactl.VertxBaseTest;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(VertxExtension.class)
-public class FunctionTests extends BaseTest {
+public class FunctionTests extends VertxBaseTest {
   HttpServer server;
   int serverPort;
 

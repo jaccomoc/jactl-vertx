@@ -17,7 +17,7 @@
 
 package io.jactl.vertx.example;
 
-import io.jactl.vertx.BaseTest;
+import io.jactl.VertxBaseTest;
 import io.jactl.vertx.JactlVertxEnv;
 import io.jactl.vertx.JsonFunctions;
 import io.vertx.ext.web.client.WebClient;
@@ -60,7 +60,7 @@ public class VertxFunctions {
 
   /**
    * Deregister the functions/methods. This allows us to run multiple tests and register/deregister each time.
-   * Only used by JUnit tests (see {@link BaseTest}).
+   * Only used by JUnit tests (see {@link VertxBaseTest}).
    */
   public static void deregisterFunctions() {
     BuiltinFunctions.deregisterFunction("sendReceive");

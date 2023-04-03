@@ -17,6 +17,7 @@
 
 package io.jactl.vertx;
 
+import io.jactl.VertxBaseTest;
 import io.vertx.junit5.RunTestOnContext;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(VertxExtension.class)
-public class JactlVertxTests extends BaseTest {
+public class JactlVertxTests extends VertxBaseTest {
 
   @RegisterExtension
   RunTestOnContext rtoc = new RunTestOnContext();
@@ -161,6 +162,13 @@ public class JactlVertxTests extends BaseTest {
       .test("class X { Y y = null }; class Y { int i = sleep(1,1) }; X x = new X(); x.y.i = 2", 2)
       .test("class X { Y y = null }; class Y { int i = sleep(1,1) }; def x = new X(); x.y.i = 2", 2)
       .test("class X { Y y = null }; class Y { int i = 1 }; def x = new X(); x.y.i = 2", 2)
+      .run();
+  }
+
+  @Test public void evalWithSleep(VertxTestContext testContext) {
+    testRunner(testContext)
+      .test("eval('sleep(1,1) + sleep(1,2)') + eval('sleep(1,3) + sleep(1,4)')", 10)
+      .test("eval('''sleep(1,1) + eval('sleep(1,2)+sleep(1,-1)')''') + eval('sleep(1,3) + sleep(1,4)')", 9)
       .run();
   }
 

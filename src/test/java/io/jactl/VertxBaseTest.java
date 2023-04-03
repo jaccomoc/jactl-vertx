@@ -15,14 +15,12 @@
  *
  */
 
-package io.jactl.vertx;
+package io.jactl;
 
+import io.jactl.vertx.JactlVertxEnv;
+import io.jactl.vertx.JsonFunctions;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
-import io.jactl.Compiler;
-import io.jactl.JactlContext;
-import io.jactl.JactlScript;
-import io.jactl.Utils;
 import io.jactl.vertx.example.VertxFunctions;
 
 import java.math.BigDecimal;
@@ -31,13 +29,13 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class BaseTest {
+public class VertxBaseTest {
   protected int                debugLevel  = 0;
   protected String             packageName = Utils.DEFAULT_JACTL_PKG;
   protected Map<String,Object> globals     = new HashMap<>();
   protected boolean            replMode    =  false;
 
-  protected Vertx vertx;
+  protected Vertx         vertx;
   protected JactlVertxEnv jactlEnv;
 
   protected int testCount;
@@ -64,17 +62,17 @@ public class BaseTest {
   class TestInstance extends DoTest {
     public TestInstance(List<String> classes, String code, Object expected) { this.classes = classes; this.code = code; this.expected = expected; }
     @Override public void doTest(VertxTestContext testContext, Runnable continuing) {
-      BaseTest.this.doTest(classes, code, expected, false, testContext, continuing);
+      VertxBaseTest.this.doTest(classes, code, expected, false, testContext, continuing);
     }
   }
   class TestError extends DoTest {
     public TestError(List<String> classes, String code, String expectedError) { this.classes = classes; this.code = code; this.expected = expectedError; }
     @Override  public void doTest(VertxTestContext testContext, Runnable continuing) {
-      BaseTest.this.doTest(classes, code, expected, true, testContext, continuing);
+      VertxBaseTest.this.doTest(classes, code, expected, true, testContext, continuing);
     }
   }
 
-  class TestRunner {
+  public class TestRunner {
     List<DoTest> tests = new ArrayList<>();
     VertxTestContext   testContext;
 
