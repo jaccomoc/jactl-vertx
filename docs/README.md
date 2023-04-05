@@ -9,7 +9,7 @@ and an example function that shows how to extend Jactl with your own application
 ## Requirements
 
 * Java 11+
-* Jactl 1.0
+* Jactl 1.0.0
 * Gradle 8.0.2
 * Vert.x 4.4.0
 * jackson-databind 2.0.1
@@ -22,7 +22,7 @@ cd jactl-vertx
 ./gradlew build testJar
 ```
 
-That will build `jactl-vertx-1.0.jar` and `jactl-vertx-1.0-SNAPSHOT-tests.jar` under the `build/libs` directory.
+That will build `jactl-vertx-1.0.0.jar` and `jactl-vertx-1.0.0-SNAPSHOT-tests.jar` under the `build/libs` directory.
 
 To push to your Maven repository you can use `publishToMaven`:
 ```shell
@@ -31,15 +31,43 @@ To push to your Maven repository you can use `publishToMaven`:
 
 ## Integration
 
-To include the library in your application add the following gradle dependency:
+### Dependency
+
+To use Jactl you will need to add a dependency on the Jactl library.
+
+#### Gradle
+
+In the `dependencies` section of your `build.gradle` file:
 ```groovy
-implementation group:'io.jactl', name:'jactl-vertx', version:'1.0'
+implementation group: 'io.jactl', name: 'jactl-vertx', version: '1.0.0'
 ```
 
 If you want to use the example `sendReceiveJson()` function then also include a dependency on the `tests` jar:
 ```groovy
-implementation group:'io.jactl', name:'jactl-vertx', version:'1.0', classifier:'tests'
+implementation group:'io.jactl', name:'jactl-vertx', version:'1.0.0', classifier:'tests'
 ```
+
+### Maven
+
+In the `dependencies` section of your `pom.xml`:
+```xml
+<dependency>
+  <groupId>io.jactl</groupId>
+  <artifactId>jactl-vertx</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
+
+To also include the `tests` jar:
+```xml
+<dependency>
+  <groupId>io.jactl</groupId>
+  <artifactId>jactl-vertx</artifactId>
+  <version>1.0.0</version>
+  <classifier>tests</classifier>
+</dependency>
+```
+
 
 ### Jactl Environment Class
 
@@ -88,7 +116,7 @@ To include these methods/functions in your Jactl REPL or Jactl commandline scrip
 configuration file to include something like the following:
 
 ```groovy
-def VERS = '1.0'                                                  // The jactl-vertx version to use
+def VERS = '1.0.0'                                                  // The jactl-vertx version to use
 def LIBS = "~/.m2/repository/io/jactl/jactl-vertx/${VERS}"         // Location of the jars
 
 // Specify the Vertx based environment class to use
@@ -203,19 +231,19 @@ going to run from and then add the `jactl-vertx` jar and `jactl-vertx` `tests` j
 and invoke `io.jactl.vertx.example.ExampleWebServer`.
 By default, it will listen on a random port:
 ```shell
-$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer
+$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer
 Listening on localhost:52178
 ```
 
 If you pass in a port number on the command line it will use that instead:
 ```shell
-$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
 You can specify the host address to listen on by using `hostname:port`:
 ```shell
-$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
@@ -227,7 +255,7 @@ port.
 
 Assume we run it on port 8080:
 ```shell
-$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
