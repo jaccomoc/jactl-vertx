@@ -20,6 +20,7 @@ package io.jactl.vertx;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.jactl.Jactl;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
@@ -51,20 +52,23 @@ public class JsonFunctions {
     mapper.enable(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN)
           .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
-    BuiltinFunctions.registerFunction(new JactlFunction(JactlType.ANY)
-                                        .name("toJson")
-                                        .impl(JsonFunctions.class, "toJson"));
-    BuiltinFunctions.registerFunction(new JactlFunction(JactlType.STRING)
-                                        .name("fromJson")
-                                        .impl(JsonFunctions.class, "fromJson"));
+    Jactl.method(JactlType.ANY)
+         .name("toJson")
+         .impl(JsonFunctions.class, "toJson")
+         .register();
+
+    Jactl.method(JactlType.STRING)
+         .name("fromJson")
+         .impl(JsonFunctions.class, "fromJson")
+         .register();
   }
 
   /**
    * Deregister the functions/methods. This allows us to run multiple tests and register/deregister each time.
    */
   public static void deregisterFunctions() {
-    BuiltinFunctions.deregisterFunction(JactlType.ANY,    "toJson");
-    BuiltinFunctions.deregisterFunction(JactlType.STRING, "fromJson");
+    Jactl.deregister(JactlType.ANY,    "toJson");
+    Jactl.deregister(JactlType.STRING, "fromJson");
 
     // Must reset these fields, or we will get an error when we try to re-register the functions
     toJsonData = fromJsonData = null;

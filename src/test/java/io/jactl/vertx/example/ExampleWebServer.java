@@ -30,6 +30,8 @@ import io.jactl.JactlScript;
 import io.jactl.runtime.DieError;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -73,9 +75,9 @@ import java.util.function.Function;
  */
 public class ExampleWebServer {
   private static final String  SCRIPT_DIR = "scripts";
-  private static final String  HOST       = "localhost";       // Address to bind to
-  private static       int     PORT       = 0;                 // Port to bind to (0 - pick a random port)
   private static final long    START_TIME = System.currentTimeMillis();
+  private static       String  HOST       = "localhost";       // Address to bind to
+  private static       int     PORT       = 0;                 // Port to bind to (0 - pick a random port)
 
   private static Map<String,Object> globals;
   private static Vertx              vertx;
@@ -86,7 +88,11 @@ public class ExampleWebServer {
 
   public static void main(String[] args) {
     if (args.length > 0) {
-      PORT = Integer.parseInt(args[0]);
+      int colonPos = args[0].indexOf(':');
+      HOST = colonPos == -1 ? "localhost" : args[0].substring(0, colonPos);
+      HOST = HOST.isEmpty() ? "*" : HOST;
+      String portStr = args[0].substring(colonPos + 1);
+      PORT = portStr.isEmpty() ? 0 : Integer.parseInt(portStr);
     }
 
     // Default values for global vars to be passed in to each script
@@ -145,10 +151,34 @@ public class ExampleWebServer {
     });
 
     // Start HTTP server with given router
-    server.requestHandler(router).listen(0, HOST).onSuccess(svr -> {
-      System.out.println("Listening on " +  server.actualPort());
-    });
+    if (HOST.equals("*")) {
+      HOST = "0.0.0.0";
+    }
+    else {
+      try {
+        var addr = InetAddress.getByName(HOST);
+        if (!addr.isSiteLocalAddress() && !addr.isLoopbackAddress()) {
+          System.err.println(HOST + " is not local to this server");
+          System.exit(1);
+        }
+      }
+      catch (UnknownHostException e) {
+        System.err.println(HOST + ": unknown host");
+        System.exit(1);
+      }
+    }
 
+    server.requestHandler(router)
+          .listen(PORT, HOST)
+          .onSuccess(svr -> {
+            PORT = server.actualPort();
+            System.out.println("Listening on " + HOST + ":" + PORT);
+          })
+          .onFailure(err -> {
+            System.err.println("Error listening on " + HOST + ":" + PORT + ": " + err.getMessage());
+            err.printStackTrace();
+            System.exit(1);
+          });
   }
 
   /**

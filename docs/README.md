@@ -53,7 +53,7 @@ See next section for an example.
 
 ### Application Integration
 
-To add these addtional functions/methods to your Jactl based application you will need to make sure that the
+To add these additional functions/methods to your Jactl based application you will need to make sure that the
 functions/methods are registered with the Jactl runtime by invoking `io.jactl.vertx.JsonFunctions.registerFunctions()`
 (for the JSON methods) and, if you want to use the example `sendReceiveJson()` function, invoking
 `example.io.jactl.vertx.VertxFunctions.registerFunctions()`.
@@ -182,3 +182,70 @@ Here are some examples where an error occurrs:
 [errorMsg:'jactl.runtime.DieError: Missing value for text field', statusCode:400]
 ```
 
+## Example Application
+
+In the `tests` jar is an example application showing how to ingrate a simple Vert.x based web server with Jactl
+scripting.
+
+The server listens for JSON requests and looks for the URI portion of the URL to work out what script to
+run to handle the request.
+For example, if the incoming URL is 'http://localhost:8080/doSomething' then it will look for a Jactl script
+under the directory from where it is running called `scripts/doSomething.jactl`.
+If the script exists it will compile it and invoke it with a global variable called `request` containing the
+body of the request (already decoded).
+
+The application will cache the compiled script so that it doesn't need to recompile it each time, but it
+monitors the source code for any changes (every 5 seconds), and if it has changed it will recompile it
+if another request for that script comes in.
+
+To run the example application create a subdirectory called `scripts` under the location where you are
+going to run from and then add the `jactl-vertx` jar and `jactl-vertx` `tests` jar to the java classpath
+and invoke `io.jactl.vertx.example.ExampleWebServer`.
+By default, it will listen on a random port:
+```shell
+$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer
+Listening on localhost:52178
+```
+
+If you pass in a port number on the command line it will use that instead:
+```shell
+$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+Listening on localhost:8080
+```
+
+You can specify the host address to listen on by using `hostname:port`:
+```shell
+$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+Listening on localhost:8080
+```
+
+If the `hostname` portion is blank (i.e. you pass it `:port`) then it will bind to all local addresses
+and listen on the port.
+
+If the `port` is blank (i.e. has the form `hostname:`) then it will bind to that address with a random
+port.
+
+Assume we run it on port 8080:
+```shell
+$ java -cp jactl-vertx-1.0-tests.jar:jactl-vertx-1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+Listening on localhost:8080
+```
+
+Now assume we have created a Jactl script for counting words and put it in under `scripts/wordCount.jactl`:
+```groovy
+// Validate request. Should be of form: [text:'some text to be word counted']
+die 'Missing value for text field' unless request instanceof Map && request.text
+def badFields = request.filter{ k,v -> k != 'text' }.map{ k,v -> k }
+die "Unknown field${badFields.size() > 1 ? 's' : ''}: ${badFields.join(', ')}" if badFields
+
+request.text.split(/\s+/)         // split on whitespace
+            .filter{ /^\w+$/r }   // filter for things that only contain word characters
+            .size()               // return the count
+```
+
+We can then invoke the script from the Jactl REPL like this using the `sendReceiveJson()` example function
+described previously:
+```groovy
+> sendReceiveJson(url:'http://localhost:8080/wordCount', request:[text:'here are some more words to be counted'])
+[response:8, statusCode:200]
+```

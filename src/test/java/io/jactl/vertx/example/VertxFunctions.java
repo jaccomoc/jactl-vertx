@@ -17,16 +17,14 @@
 
 package io.jactl.vertx.example;
 
+import io.jactl.Jactl;
 import io.jactl.VertxBaseTest;
+import io.jactl.runtime.*;
 import io.jactl.vertx.JactlVertxEnv;
 import io.jactl.vertx.JsonFunctions;
-import io.vertx.ext.web.client.WebClient;
 import io.jactl.JactlEnv;
-import io.jactl.runtime.BuiltinFunctions;
-import io.jactl.runtime.Continuation;
-import io.jactl.runtime.JactlFunction;
-import io.jactl.runtime.RuntimeError;
 
+import io.vertx.ext.web.client.WebClient;
 import java.util.Map;
 
 /**
@@ -51,11 +49,12 @@ public class VertxFunctions {
   public static void registerFunctions(JactlEnv env) {
     webClient = WebClient.create(((JactlVertxEnv)env).vertx());
 
-    BuiltinFunctions.registerFunction(new JactlFunction()
-                                        .name("sendReceiveJson")
-                                        .param("url")
-                                        .param("request")
-                                        .impl(VertxFunctions.class, "sendReceiveJson"));
+    Jactl.function()
+         .name("sendReceiveJson")
+         .param("url")
+         .param("request")
+         .impl(VertxFunctions.class, "sendReceiveJson")
+         .register();
   }
 
   /**
@@ -63,7 +62,7 @@ public class VertxFunctions {
    * Only used by JUnit tests (see {@link VertxBaseTest}).
    */
   public static void deregisterFunctions() {
-    BuiltinFunctions.deregisterFunction("sendReceive");
+    Jactl.deregister("sendReceive");
 
     // Must reset this field, or we will get an error when we try to re-register the function
     sendReceiveJsonData = null;
@@ -83,10 +82,10 @@ public class VertxFunctions {
       try {
         webClient.postAbs(url)
                  .sendJson(request)
-                 .onSuccess(res -> {
-                   var body = JsonFunctions.fromJson(res.bodyAsString(), source, offset);
-                   var name = res.statusCode() / 100 != 2 ? "errorMsg" : "response";
-                   resumer.accept(Map.of("statusCode", res.statusCode(), name, body));
+                 .onSuccess(response -> {
+                   var body = JsonFunctions.fromJson(response.bodyAsString(), source, offset);
+                   var name = response.statusCode() / 100 != 2 ? "errorMsg" : "response";
+                   resumer.accept(Map.of("statusCode", response.statusCode(), name, body));
                  })
                  .onFailure(res -> {
                    // Unexpected error
