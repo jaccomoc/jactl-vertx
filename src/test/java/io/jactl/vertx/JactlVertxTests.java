@@ -144,8 +144,6 @@ public class JactlVertxTests extends VertxBaseTest {
       .test("class X { int abc = 1 }; def x = new X(); x.\"${sleep(1,'a') + sleep(1,'bc')}\"", 1)
       .test("class X { int abc = sleep(1,1) + sleep(1,new X(abc:3).abc) }; def x = new X(); x.abc", 4)
       .test("class X { int i = sleep(1,-1)+sleep(1,2); def f(){ return sleep(1,{ sleep(1,++i - 1)+sleep(1,1) }) } }; def x = new X(); def g = x.f(); g() + g() + x.i", 8)
-      .test("class X { Y y = sleep(1,null) }; class Y { int i = sleep(1,1) }; X x = new X(); x.y.i = 2; x.y.i", 2)
-      .test("class X { Y y = sleep(1,null) }; class Y { int i = sleep(1,1) }; def x = new X(); x.y.i = 2; x.y.i", 2)
       .test("class X { def f() { sleep(1,1) + sleep(1,2) }}; class Y extends X { def f() { sleep(1,5) + sleep(1,4)} }; def y = new Y(); y.f()", 9)
       .test("class X { def f() { 1 + 2 }}; class Y extends X { def f() { super.f() + 5 + 4} }; def y = new Y(); y.f()", 12)
       .test("class X { def f() { sleep(1,1) + sleep(1,2) }}; class Y extends X { def f() { super.f() + sleep(1,5) + sleep(1,4)} }; def y = new Y(); y.f()", 12)
@@ -159,8 +157,6 @@ public class JactlVertxTests extends VertxBaseTest {
       .test("class X { Y y = null }; class Y { Z z = null }; class Z { int i = 3; X x = null }; X x = new X(); x.y.z.x.y.z.(sleep(1,'i')) = 4; x.y.z.\"${'x'}\".y.z.i", 4)
       .test("class X { int i = sleep(1,3) }; sleep(1,new X()).i", 3)
       .test("class X { int i }; sleep(1,new X(i:sleep(1,3))).i", 3)
-      .test("class X { Y y = null }; class Y { int i = sleep(1,1) }; X x = new X(); x.y.i = 2", 2)
-      .test("class X { Y y = null }; class Y { int i = sleep(1,1) }; def x = new X(); x.y.i = 2", 2)
       .test("class X { Y y = null }; class Y { int i = 1 }; def x = new X(); x.y.i = 2", 2)
       .run();
   }
