@@ -66,9 +66,9 @@ cd jactl-vertx
 That will build `jactl-vertx-${VERSION}.jar` and `jactl-vertx-${VERSION}-tests.jar` under the `build/libs` directory
 where `${VERSION}` is the current version or the version of the tag/branch you have checked out.
 
-To push to your Maven repository you can use `publishToMaven`:
+To push the `jactl-vertx` jar to your local Maven repository you can use `publishToMavenLocal`:
 ```shell
-./gradlew build testJar publishToMaven
+./gradlew build testJar publishToMavenLocal
 ```
 
 # Integration
