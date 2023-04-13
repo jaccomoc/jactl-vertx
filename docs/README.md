@@ -1,50 +1,24 @@
 # Jactl-Vertx
 
 The Jactl-Vertx project is a project that adds a [Vert.x](https://vertx.io/) based execution environment
-to the [Jactl](https://github.com/jaccomoc/jactl) scripting language along with some additional methods
+to the [Jactl](https://jactl.io) scripting language along with some additional methods
 and an example function that shows how to extend Jactl with your own application specific functions/methods.
 
-# Building
+## Dependency
 
-## Requirements
+To use this library you will need to add a dependency on the `jactl-vertx` library.
 
-* Java 11+
-* Jactl 1.0.0
-* Gradle 8.0.2
-* Vert.x 4.4.0
-* jackson-databind 2.0.1
-
-## Build
-
-```shell
-git clone https://github.com/jaccomoc/jactl-vertx.git
-cd jactl-vertx
-./gradlew build testJar
-```
-
-That will build `jactl-vertx-1.0.0.jar` and `jactl-vertx-1.0.0-SNAPSHOT-tests.jar` under the `build/libs` directory.
-
-To push to your Maven repository you can use `publishToMaven`:
-```shell
-./gradlew build testJar publishToMaven
-```
-
-## Integration
-
-### Dependency
-
-To use Jactl you will need to add a dependency on the Jactl library.
-
-#### Gradle
+### Gradle
 
 In the `dependencies` section of your `build.gradle` file:
 ```groovy
-implementation group: 'io.jactl', name: 'jactl-vertx', version: '1.0.0'
+implementation group: 'io.jactl', name: 'jactl-vertx', version: '1.1.0'
 ```
 
-If you want to use the example `sendReceiveJson()` function then also include a dependency on the `tests` jar:
+If you want to use the example `sendReceiveJson()` function then also include a dependency on the `tests` jar (you
+will need to have built the `tests` jar locally as this is not published in Maven Central):
 ```groovy
-implementation group:'io.jactl', name:'jactl-vertx', version:'1.0.0', classifier:'tests'
+implementation group:'io.jactl', name:'jactl-vertx', version:'1.1.0', classifier:'tests'
 ```
 
 ### Maven
@@ -54,22 +28,52 @@ In the `dependencies` section of your `pom.xml`:
 <dependency>
   <groupId>io.jactl</groupId>
   <artifactId>jactl-vertx</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
-To also include the `tests` jar:
+If you have built the `tests` jar locally and want to use it in a test application then add this (the `tests` jar is
+not published in Maven Central):
 ```xml
 <dependency>
   <groupId>io.jactl</groupId>
   <artifactId>jactl-vertx</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <classifier>tests</classifier>
 </dependency>
 ```
 
+# Building
 
-### Jactl Environment Class
+## Requirements
+
+* Java 11+
+* Jactl 1.1.0
+* Gradle 8.0.2
+* Vert.x 4.4.1
+* jackson-databind 2.0.1
+
+## Build
+
+Download a zip file of the source from GitHub or use `git` to clone the repository:
+
+```shell
+git clone https://github.com/jaccomoc/jactl-vertx.git
+cd jactl-vertx
+./gradlew build testJar
+```
+
+That will build `jactl-vertx-${VERSION}.jar` and `jactl-vertx-${VERSION}-tests.jar` under the `build/libs` directory
+where `${VERSION}` is the current version or the version of the tag/branch you have checked out.
+
+To push to your Maven repository you can use `publishToMaven`:
+```shell
+./gradlew build testJar publishToMaven
+```
+
+# Integration
+
+## Jactl Environment Class
 
 The `io.jactl.vertx.JactlVertxEnv` class provides a bridge between the Jactl runtime and the Vert.x runtime
 environment to allow Jactl on Vert.x event-loop threads and schedule blocking work on Vert.x blocking worker
@@ -79,12 +83,12 @@ It should be constructed by passing a `Vertx` instance and the `JacsaVertxEnv` s
 object that you create using the `JactlContext.environment()` method.
 See next section for an example.
 
-### Application Integration
+## Application Integration
 
-To add these additional functions/methods to your Jactl based application you will need to make sure that the
-functions/methods are registered with the Jactl runtime by invoking `io.jactl.vertx.JsonFunctions.registerFunctions()`
-(for the JSON methods) and, if you want to use the example `sendReceiveJson()` function, invoking
-`example.io.jactl.vertx.VertxFunctions.registerFunctions()`.
+To add the additional functions/methods from the `jactl-vertx` library to your Jactl based application you will need
+to make sure that the functions/methods are registered with the Jactl runtime by invoking
+`io.jactl.vertx.JsonFunctions.registerFunctions()` (for the JSON methods) and, if you want to use the example
+`sendReceiveJson()` function, invoking `example.io.jactl.vertx.VertxFunctions.registerFunctions()`.
 
 Both these methods should be passed the instance of the `io.jactl.vertx.JactlVertxEnv` class that is also passed to
 the `JactlContext.environment()` method when constructing your `JactlContext` object.
@@ -110,13 +114,13 @@ class MyVertxApp {
 }
 ```
 
-### Jactl REPL and Jactl Commandline Integration
+## Jactl REPL and Jactl Commandline Integration
 
 To include these methods/functions in your Jactl REPL or Jactl commandline scripts you can set your `~/.jactlrc`
 configuration file to include something like the following:
 
 ```groovy
-def VERS = '1.0.0'                                                  // The jactl-vertx version to use
+def VERS = '1.1.0'                                                  // The jactl-vertx version to use
 def LIBS = "~/.m2/repository/io/jactl/jactl-vertx/${VERS}"         // Location of the jars
 
 // Specify the Vertx based environment class to use
@@ -132,7 +136,7 @@ functionClasses  = [ 'io.jactl.vertx.JsonFunctions',
 ```
 
 > **Note**<br/>
-> The `jactl-vertx` test jar is built as an "uber" jar and includes the dependencies it needs (including the
+> The `jactl-vertx` test jar is built as a "fat" jar and includes the dependencies it needs (including the
 > Vert.x libraries) so we don't need to separately list the Vert.x jars as well.
 
 ## Functions
@@ -210,7 +214,7 @@ Here are some examples where an error occurrs:
 [errorMsg:'jactl.runtime.DieError: Missing value for text field', statusCode:400]
 ```
 
-## Example Application
+# Example Application
 
 In the `tests` jar is an example application showing how to ingrate a simple Vert.x based web server with Jactl
 scripting.
@@ -231,19 +235,19 @@ going to run from and then add the `jactl-vertx` jar and `jactl-vertx` `tests` j
 and invoke `io.jactl.vertx.example.ExampleWebServer`.
 By default, it will listen on a random port:
 ```shell
-$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer
+$ java -cp jactl-vertx-1.1.0-tests.jar:jactl-vertx-1.1.0.jar io.jactl.vertx.example.ExampleWebServer
 Listening on localhost:52178
 ```
 
 If you pass in a port number on the command line it will use that instead:
 ```shell
-$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.1.0-tests.jar:jactl-vertx-1.1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
 You can specify the host address to listen on by using `hostname:port`:
 ```shell
-$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.1.0-tests.jar:jactl-vertx-1.1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
@@ -255,7 +259,7 @@ port.
 
 Assume we run it on port 8080:
 ```shell
-$ java -cp jactl-vertx-1.0.0-tests.jar:jactl-vertx-1.0.0.jar io.jactl.vertx.example.ExampleWebServer 8080
+$ java -cp jactl-vertx-1.1.0-tests.jar:jactl-vertx-1.1.0.jar io.jactl.vertx.example.ExampleWebServer 8080
 Listening on localhost:8080
 ```
 
