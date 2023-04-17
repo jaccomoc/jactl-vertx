@@ -42,6 +42,7 @@ import java.util.Map;
 public class JsonFunctions {
   /**
    * Initialisation: registers the methods.
+   * @param notused  not used
    */
   public static void registerFunctions(JactlEnv notused) {
     // Ensure that we use BigDecimal for decoding floating point numbers and make sure when
