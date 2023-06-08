@@ -17,27 +17,32 @@
 
 package io.jactl.vertx.example;
 
+import com.hazelcast.config.Config;
+import io.jactl.Utils;
 import io.jactl.vertx.JactlVertxEnv;
 import io.jactl.vertx.JsonFunctions;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.web.Router;
-import io.jactl.Compiler;
 import io.jactl.JactlContext;
-import io.jactl.JactlError;
-import io.jactl.JactlScript;
 import io.jactl.runtime.DieError;
+import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
-import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 /**
@@ -74,202 +79,203 @@ import java.util.function.Function;
  * </pre>
  */
 public class ExampleWebServer {
-  private static final String  SCRIPT_DIR = "scripts";
   private static final long    START_TIME = System.currentTimeMillis();
   private static       String  HOST       = "localhost";       // Address to bind to
   private static       int     PORT       = 0;                 // Port to bind to (0 - pick a random port)
 
   private static Map<String,Object> globals;
   private static Vertx              vertx;
-  private static JactlContext      jactlContext;
+  private static JactlContext       jactlContext;
+  private static String             pathPrefix = "";
 
-  // Map of scripts keyed on URI
-  private static Map<String, ScriptInfo> scripts = new ConcurrentHashMap<>();
-
-  public static void main(String[] args) {
-    if (args.length > 0) {
-      int colonPos = args[0].indexOf(':');
-      HOST = colonPos == -1 ? "localhost" : args[0].substring(0, colonPos);
+  public static void main(String[] args) throws ExecutionException, InterruptedException, IOException {
+    String hostPort = null;
+    int threads = -1;
+    int workerPoolSize = VertxOptions.DEFAULT_WORKER_POOL_SIZE;
+    for (int i = 0; i < args.length; i++) {
+      switch (args[i]) {
+        case "-t":
+          threads = Integer.parseInt(args[++i]);
+          break;
+        case "-P":
+          pathPrefix = args[++i];
+          if (!pathPrefix.startsWith("/")) {
+            System.err.println("Path prefix must start with '/'");
+            System.exit(1);
+          }
+          break;
+        case "-w":
+          workerPoolSize = Integer.parseInt(args[++i]);
+          break;
+        default:
+          hostPort = args[i];
+          break;
+      }
+    }
+    if (hostPort != null) {
+      int    colonPos = hostPort.indexOf(':');
+      HOST = colonPos == -1 ? "localhost" : hostPort.substring(0, colonPos);
       HOST = HOST.isEmpty() ? "*" : HOST;
-      String portStr = args[0].substring(colonPos + 1);
+      String portStr = hostPort.substring(colonPos + 1);
       PORT = portStr.isEmpty() ? 0 : Integer.parseInt(portStr);
     }
 
     // Default values for global vars to be passed in to each script
-    globals = Map.of("request",   new LinkedHashMap<>(),
+    globals = Map.of("request",    new LinkedHashMap<>(),
+                     "responseId", 0L,
                      "host",      HOST,
                      "port",      PORT,
+                     "baseUrl",   "http://" + HOST + ":" + PORT + pathPrefix,
                      "startTime", START_TIME);
 
-    vertx = Vertx.vertx();
-    JactlVertxEnv env = new JactlVertxEnv(vertx);
-    VertxFunctions.registerFunctions(env);
-    jactlContext = JactlContext.create().environment(env).build();
-
-    var server = vertx.createHttpServer();
-
-    // Helper to encode an Exception as a Map
-    Function<Exception,String> errMsg = err -> err.getClass().getName() + ": " + err.getMessage();
-
-    Function<Buffer,Object> fromJson = buf -> JsonFunctions.fromJson(buf.toString(), "", 0);
-
-    // Configure HTTP server router to handle inbound requests
-    Router router = Router.router(vertx);
-    router.route().handler(ctx -> {
-      ctx.request().pause();                              // Pause while finding/compiling script
-
-      // Find and execute script with name of uri (if script exists)
-      findScript(ctx.request().uri(), scriptInfo -> {
-        ctx.request().resume();
-        // Result is either a script or an Exception if something went wrong during compilation
-        if (scriptInfo.statusCode != 200) {
-          ctx.response()
-             .setStatusCode(scriptInfo.statusCode)
-             .end(Json.encode(errMsg.apply(scriptInfo.error)));
-        }
-        else {
-          ctx.request().bodyHandler(buf -> {
-            // Pass in body of request bound to global variable "request"
-            try {
-              Map<String,Object> bindings = new LinkedHashMap<>(globals){{ put("request", fromJson.apply(buf)); }};
-
-              // Invoke script with given bindings for global variables
-              scriptInfo.script.run(bindings, result -> {
-                var response = result instanceof Exception ? errMsg.apply((Exception)result) : result;
-                int status   = result instanceof DieError ? 400 : result instanceof Exception ? 500 : 200;
-                ctx.response()
-                   .setStatusCode(status)
-                   .end(Json.encode(response));
-              });
-            }
-            catch (Exception e) {
-              ctx.response().setStatusCode(404).end(Json.encode(errMsg.apply(e)));
-            }
-          });
-        }
+    if (Boolean.getBoolean("CLUSTERED")) {
+      log("Clustered: namespace=" + System.getProperty("KUBERNETES_NAMESPACE") + ", service-name=" + System.getProperty("SERVICE_NAME"));
+      Config hazelCastConf = new Config();
+      hazelCastConf.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+      hazelCastConf.getNetworkConfig().getJoin().getKubernetesConfig()
+                   .setEnabled(true)
+                   .setProperty("namespace", System.getProperty("KUBERNETES_NAMESPACE"))
+                   .setProperty("service-name", System.getProperty("SERVICE_NAME"));
+      HazelcastClusterManager mgr = new HazelcastClusterManager(hazelCastConf);
+      mgr.nodeListener(new NodeListener() {
+        @Override public void nodeAdded(String nodeID) { log("Node added: " + nodeID); }
+        @Override public void nodeLeft(String nodeID)  { log("Node left:  " + nodeID); }
       });
-    });
-
-    // Start HTTP server with given router
-    if (HOST.equals("*")) {
-      HOST = "0.0.0.0";
+      CompletableFuture<Vertx> vertxFuture = new CompletableFuture<>();
+      var options = new VertxOptions().setClusterManager(mgr)
+                                      .setWorkerPoolSize(workerPoolSize);
+      Vertx.clusteredVertx(options)
+           .onSuccess(result -> vertxFuture.complete(result))
+           .onFailure(err -> { err.printStackTrace(); System.exit(1); });
+      Vertx vtx = vertxFuture.get();
+      log("Cluster node id: " + mgr.getNodeId());
+      String podId = System.getProperty("POD_NAME");
+      log("Pod name: " + podId);
+      init(vtx, threads, podId);
     }
     else {
-      try {
-        var addr = InetAddress.getByName(HOST);
-        if (!addr.isSiteLocalAddress() && !addr.isLoopbackAddress()) {
-          System.err.println(HOST + " is not local to this server");
+      init(Vertx.vertx(), threads, null);
+    }
+  }
+
+  private static void init(Vertx vtx, int threads, String podId) throws IOException, ExecutionException, InterruptedException {
+    vertx = vtx;
+    JactlVertxEnv env = new JactlVertxEnv(vertx, podId);
+    VertxFunctions.registerFunctions(env);
+    JsonFunctions.registerFunctions(env);
+    jactlContext = JactlContext.create().environment(env).build();
+
+    log("Compiling scripts");
+    ScriptInfo.compileScripts(globals, jactlContext, vertx);
+    log("Scripts compiled");
+
+    DeploymentOptions options = new DeploymentOptions().setInstances(threads == -1 ? Runtime.getRuntime().availableProcessors() : threads);
+    vertx.deployVerticle(WebServer.class, options);
+    log("Web Server Verticles deployed");
+    int count = env.recoverCheckpoints(jactlContext);
+    log("Recovered " + count + " script instances");
+  }
+
+  private static SimpleDateFormat timeFmt = new SimpleDateFormat("hh:mm:ss.SSS");
+  private static synchronized void log(String msg) {
+    System.out.println(timeFmt.format(new Date()) + ": " + msg);
+  }
+
+  public static class WebServer extends AbstractVerticle {
+
+    @Override
+    public void start() throws Exception {
+      var server = vertx.createHttpServer();
+
+      // Helper to encode an Exception as a Map
+      Function<Throwable, String> errMsg = err -> err.getClass().getName() + ": " + err.getMessage();
+
+      Function<Buffer, Object> fromJson = buf -> JsonFunctions.fromJson(buf.toString(), "", 0);
+
+      // Configure HTTP server router to handle inbound requests
+      Router router = Router.router(vertx);
+      router.route(pathPrefix + "/:script").handler(ctx -> {
+        var request  = ctx.request();
+        var response = ctx.response();
+        request.pause();                              // Pause while finding/compiling script
+
+        // Find and execute script with name of uri (if script exists)
+        ScriptInfo.findScript(ctx.pathParam("script"), globals, jactlContext, vertx, scriptInfo -> {
+          request.resume();
+          // Result is either a script or an Exception if something went wrong during compilation
+          if (scriptInfo.statusCode != 200) {
+            response.setStatusCode(scriptInfo.statusCode)
+                    .end(Json.encode(errMsg.apply(scriptInfo.error)));
+          }
+          else {
+            request.bodyHandler(buf -> {
+              long responseId = VertxFunctions.registerResponse(response);
+              // Pass in body of request bound to global variable "request"
+              try {
+                Map<String, Object> bindings = new LinkedHashMap<>(globals) {{
+                  put("request", fromJson.apply(buf));
+                  put("responseId", responseId);
+                }};
+
+                // Invoke script with given bindings for global variables
+                scriptInfo.script.run(bindings, result -> {
+                  if (!response.ended()) {
+                    var responseResult = result instanceof Exception ? errMsg.apply((Exception) result) : result;
+                    int status         = result instanceof DieError ? 400 : result instanceof Exception ? 500 : 200;
+                    try {
+                      response.setStatusCode(status)
+                              .end(Json.encode(responseResult))
+                              .onFailure(err -> err.printStackTrace());
+                    }
+                    catch (Throwable t) {
+                      t.printStackTrace();
+                    }
+                  }
+                });
+              }
+              catch (Exception e) {
+                e.printStackTrace();
+                response.setStatusCode(404).end(Json.encode(errMsg.apply(e)));
+              }
+              catch (Throwable t) {
+                t.printStackTrace();
+                response.setStatusCode(501).end(Json.encode(errMsg.apply(t)));
+              }
+            });
+          }
+        });
+      });
+
+      // Start HTTP server with given router
+      if (HOST.equals("*")) {
+        HOST = "0.0.0.0";
+      }
+      else {
+        try {
+          var addr = InetAddress.getByName(HOST);
+          if (!addr.isSiteLocalAddress() && !addr.isLoopbackAddress()) {
+            System.err.println(HOST + " is not local to this server");
+            System.exit(1);
+          }
+        }
+        catch (UnknownHostException e) {
+          System.err.println(HOST + ": unknown host");
           System.exit(1);
         }
       }
-      catch (UnknownHostException e) {
-        System.err.println(HOST + ": unknown host");
-        System.exit(1);
-      }
-    }
 
-    server.requestHandler(router)
-          .listen(PORT, HOST)
-          .onSuccess(svr -> {
-            PORT = server.actualPort();
-            System.out.println("Listening on " + HOST + ":" + PORT);
-          })
-          .onFailure(err -> {
-            System.err.println("Error listening on " + HOST + ":" + PORT + ": " + err.getMessage());
-            err.printStackTrace();
-            System.exit(1);
-          });
-  }
-
-  /**
-   * Look for a script called scriptName.jactl in directory called scripts and compile it if it
-   * exists. Cache the result so next time we don't have to recompile.
-   * @param scriptName  the "name" of the script (corresponds to the uri of the request)
-   * @param handler     the handler to invoke once we have a compiled script
-   */
-  private static void findScript(String scriptName, Consumer<ScriptInfo> handler) {
-    ScriptInfo scriptInfo = scripts.get(scriptName);
-    if (scriptInfo == null || fileIsModified(scriptInfo)) {
-      vertx.executeBlocking(prom -> {
-                                var entry = compileScript(scriptName);
-                                scripts.put(scriptName, entry);
-                                prom.complete(entry);
-                            },
-                            res -> handler.accept((ScriptInfo)res.result()));
-    }
-    else {
-      handler.accept(scripts.get(scriptName));
+      server.requestHandler(router)
+            .listen(PORT, HOST)
+            .onSuccess(svr -> {
+              PORT = server.actualPort();
+              log("Listening on " + HOST + ":" + PORT);
+            })
+            .onFailure(err -> {
+              System.err.println("Error listening on " + HOST + ":" + PORT + ": " + err.getMessage());
+              err.printStackTrace();
+              System.exit(1);
+            });
     }
   }
 
-  /**
-   * Compile script with given name under the SCRIPT_DIR directory.
-   * @param name        the name (suffix of ".jactl" will be applied to generate file name)
-   * @return a ScriptInfo entry with script and modification time set
-   * @throws Exception  on error
-   */
-  private static ScriptInfo compileScript(String name) {
-    try {
-      long modificationTime = fileModificationTime(name);
-      String source = Files.readString(Path.of(SCRIPT_DIR, name + ".jactl"));
-      var script = Compiler.compileScript(source, jactlContext, globals);
-      return new ScriptInfo(name, script, modificationTime);
-    }
-    catch (JactlError e) {
-      return new ScriptInfo(name, 501, e);
-    }
-    catch (Exception e) {
-      return new ScriptInfo(name, 404, e);
-    }
-  }
-
-  /**
-   * Check if file has been modified since last time we checked. If we have checked very recently
-   * we return false without actually validating the file system modification time to prevent us
-   * hammering the file system unnecessarily.
-   * NOTE: this will update the lastCheckTime field of scriptWithTime.
-   * @param scriptInfo   the ScriptWithTime entry
-   * @return true if file has changed
-   */
-  private static boolean fileIsModified(ScriptInfo scriptInfo) {
-    // Only check file system every 5 seconds
-    boolean isModified = false;
-    long    now        = System.currentTimeMillis();
-    if (now - scriptInfo.lastCheckTime > 5000) {
-      isModified = fileModificationTime(scriptInfo.name) > scriptInfo.modificationTime;
-    }
-    scriptInfo.lastCheckTime = now;
-    return isModified;
-  }
-
-  private static long fileModificationTime(String name) {
-    return new File(SCRIPT_DIR, name + ".jactl").lastModified();
-  }
-
-  static class ScriptInfo {
-    String       name;               // The script "name" (corresponds to the uri)
-    JactlScript script;             // The compiled script
-    long         modificationTime;   // File modification time
-    long         lastCheckTime;      // Time we last checked for file modification
-
-    // Status code to use if error finding/compiling script:
-    //   404 - no such script
-    //   501 - compile error
-    int          statusCode = 200;
-    Exception    error;
-
-    ScriptInfo(String name, JactlScript script, long time) {
-      this.name             = name;
-      this.script           = script;
-      this.modificationTime = time;
-      this.lastCheckTime    = System.currentTimeMillis();
-    }
-
-    ScriptInfo(String name, int statusCode, Exception err) {
-      this.name          = name;
-      this.statusCode    = statusCode;
-      this.error         = err;
-      this.lastCheckTime = System.currentTimeMillis();
-    }
-  }
 }

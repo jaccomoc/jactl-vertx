@@ -17,27 +17,64 @@
 
 package io.jactl.vertx;
 
+import io.jactl.JactlContext;
+import io.jactl.Utils;
+import io.jactl.runtime.RuntimeError;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.jactl.JactlEnv;
+import io.vertx.core.shareddata.AsyncMap;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * Jactl execution environment for Vert.x based applications.
  * This delegates scheduling of events (blocking and non-blocking) to Vertx.
  */
 public class JactlVertxEnv implements JactlEnv {
-  Vertx vertx;
-  static Vertx singletonVertx;
+  private static final String CHECKPOINT_MAP = Utils.JACTL_PREFIX + "checkpointMap";
+  private static Vertx singletonVertx;
+  protected Vertx    vertx;
+  protected String   podId;
+  private AsyncMap<String,byte[]> checkpoints;
+
+  // TESTING
+  public static AtomicBoolean checkpointEnabled = new AtomicBoolean(true);
 
   public JactlVertxEnv() {
     if (singletonVertx == null) {
       singletonVertx = Vertx.vertx();
     }
     vertx = singletonVertx;
+    init();
   }
 
   public JactlVertxEnv(Vertx vertx) {
+    this(vertx, null);
+  }
+
+  public JactlVertxEnv(Vertx vertx, String podId) {
+    this(vertx, podId, true);
+  }
+
+  public JactlVertxEnv(Vertx vertx, String podId, boolean clustered) {
     this.vertx = vertx;
+    this.podId = podId;
+    if (clustered) {
+      init();
+    }
+  }
+
+  protected void init() {
+    vertx.sharedData()
+         .getAsyncMap(CHECKPOINT_MAP + (podId == null ? "" : ":" + podId))
+         .onSuccess(aMap -> checkpoints = (AsyncMap<String,byte[]>)(Object)aMap)
+         .onFailure(Throwable::printStackTrace);
   }
 
   public Vertx vertx() {
@@ -84,5 +121,55 @@ public class JactlVertxEnv implements JactlEnv {
   @Override
   public Object getThreadContext() {
     return vertx.getOrCreateContext();
+  }
+
+  @Override
+  public void saveCheckpoint(UUID id, int checkpointId, byte[] checkpoint, String source, int offset, Object result, Consumer<Object> resumer) {
+    if (!checkpointEnabled.get()) {
+      resumer.accept(result);
+      return;
+    }
+    String idAsString  = id.toString();
+    String key         = idAsString + ':' + checkpointId;
+    String previousKey = checkpointId > 1 ? idAsString + ':' + (checkpointId - 1) : null;
+    checkpoints.putIfAbsent(key, checkpoint)
+               .onSuccess(res -> {
+                 if (res != null) {
+                   // There was already an entry for that instanceId and checkpointId. This means that we have the
+                   // same instance running in two different places at the same time.
+                   resumer.accept(new RuntimeError("Duplicate checkpoint detected", source, offset));
+                 }
+                 else {
+                   if (previousKey != null) {
+                     // Delete the last one but don't bother waiting for it to complete
+                     checkpoints.remove(previousKey).onFailure(Throwable::printStackTrace);
+                   }
+                   resumer.accept(result);
+                 }
+               })
+               .onFailure(err -> resumer.accept(new RuntimeError("Error during saveCheckpoint: " + err.getMessage(), source, offset, err)));
+  }
+
+  @Override
+  public void deleteCheckpoint(UUID id, int checkpointId) {
+    if (!checkpointEnabled.get()) {
+      return;
+    }
+    String key = id.toString() + ':' + checkpointId;
+    checkpoints.remove(key).onFailure(Throwable::printStackTrace);
+  }
+
+  public int recoverCheckpoints(JactlContext context) throws ExecutionException, InterruptedException {
+    CompletableFuture<Object> f = new CompletableFuture<>();
+    checkpoints.values()
+               .onSuccess(f::complete)
+               .onFailure(f::complete);
+    Object result = f.get();
+    if (result instanceof List) {
+      List<byte[]> list = (List<byte[]>) result;
+      list.forEach(chkPt -> context.recoverCheckpoint(chkPt, res -> {}));
+      return list.size();
+    }
+    throw new RuntimeException("Error getting values of async map", (Throwable)result);
   }
 }

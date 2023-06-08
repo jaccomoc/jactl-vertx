@@ -21,16 +21,21 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.jactl.Jactl;
+import io.jactl.Utils;
+import io.jactl.runtime.Continuation;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import io.jactl.JactlEnv;
 import io.jactl.JactlType;
 import io.jactl.runtime.RuntimeError;
+import io.vertx.core.shareddata.AsyncMap;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This class registers two methods:
@@ -40,11 +45,16 @@ import java.util.Map;
  * </dl>
  */
 public class JsonFunctions {
+  private static       Vertx                                              vertx;
+  private static final ConcurrentHashMap<String, AsyncMap<Object,Object>> asyncMaps = new ConcurrentHashMap<>();
+
   /**
    * Initialisation: registers the methods.
-   * @param notused  not used
+   * @param env the env
    */
-  public static void registerFunctions(JactlEnv notused) {
+  public static void registerFunctions(JactlEnv env) {
+    vertx = ((JactlVertxEnv) env).vertx();
+
     // Ensure that we use BigDecimal for decoding floating point numbers and make sure when
     // encoding BigDecimal to JSON that we don't use scientific notation.
     ObjectMapper mapper = ((io.vertx.core.json.jackson.DatabindCodec)io.vertx.core.json.Json.CODEC).mapper();
@@ -52,25 +62,48 @@ public class JsonFunctions {
           .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     Jactl.method(JactlType.ANY)
-         .name("toJson")
+         .name("toJsonVertx")
          .impl(JsonFunctions.class, "toJson")
          .register();
 
     Jactl.method(JactlType.STRING)
-         .name("fromJson")
+         .name("fromJsonVertx")
          .impl(JsonFunctions.class, "fromJson")
          .register();
+
+    Jactl.function()
+         .name("distributedPut")
+         .param("map")
+         .param("key")
+         .param("value")
+         .impl(JsonFunctions.class,"distributedPut")
+         .register();
+
+    Jactl.function()
+         .name("distributedGet")
+         .param("map")
+         .param("key")
+         .impl(JsonFunctions.class,"distributedGet")
+         .register();
+
+    Jactl.function()
+         .name("distributedRemove")
+         .param("map")
+         .param("key")
+         .impl(JsonFunctions.class,"distributedRemove")
+         .register();
+
   }
 
   /**
    * Deregister the functions/methods. This allows us to run multiple tests and register/deregister each time.
    */
   public static void deregisterFunctions() {
-    Jactl.deregister(JactlType.ANY,    "toJson");
-    Jactl.deregister(JactlType.STRING, "fromJson");
-
-    // Must reset these fields, or we will get an error when we try to re-register the functions
-    toJsonData = fromJsonData = null;
+    Jactl.deregister(JactlType.ANY,    "toJsonVertx");
+    Jactl.deregister(JactlType.STRING, "fromJsonVertx");
+    Jactl.deregister("distributedPut");
+    Jactl.deregister("distributedGet");
+    Jactl.deregister("distributedRemove");
   }
 
   /**
@@ -128,4 +161,87 @@ public class JsonFunctions {
   }
   public static Object fromJsonData;
 
+  private static void validateMapName(String mapName, String source, int offset) {
+    if (mapName.startsWith(Utils.JACTL_PREFIX)) {
+      throw new RuntimeError("Map names must not begin with " + Utils.JACTL_PREFIX, source, offset);
+    }
+  }
+
+  public static Object distributedPut(Continuation c, String source, int offset, String map, String key, Object value) {
+    validateMapName(map, source, offset);
+    Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
+      var asyncMap = asyncMaps.get(map);
+      if (asyncMap != null) {
+        asyncMap.put(key, value)
+                .onSuccess(res -> resumer.accept(value))
+                .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
+      }
+      else {
+        vertx.sharedData()
+             .getAsyncMap(map)
+             .onSuccess(aMap -> {
+               asyncMaps.put(map, aMap);
+               aMap.put(key, value)
+                   .onSuccess(res -> resumer.accept(value))
+                   .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
+
+             })
+             .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
+      }
+    });
+    return null;
+  }
+  public static Object distributedPutData;
+
+  public static Object distributedGet(Continuation c, String source, int offset, String map, String key) {
+    validateMapName(map, source, offset);
+    Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
+      var asyncMap = asyncMaps.get(map);
+      if (asyncMap != null) {
+        asyncMap.get(key)
+                .onSuccess(resumer::accept)
+                .onFailure(err -> resumer.accept(new RuntimeError("distributedGet error: " + err.getMessage(), source, offset, err)));
+      }
+      else {
+        vertx.sharedData()
+             .getAsyncMap(map)
+             .onSuccess(aMap -> {
+               asyncMaps.put(map, aMap);
+               aMap.get(key)
+                   .onSuccess(resumer::accept)
+                   .onFailure(err -> resumer.accept(new RuntimeError("distributedGet error: " + err.getMessage(), source, offset, err)));
+
+             })
+             .onFailure(err -> resumer.accept(new RuntimeError("distributedGet error: " + err.getMessage(), source, offset, err)));
+      }
+    });
+    return null;
+  }
+  public static Object distributedGetData;
+
+  public static Object distributedRemove(Continuation c, String source, int offset, String map, String key) {
+    validateMapName(map, source, offset);
+    Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
+      var asyncMap = asyncMaps.get(map);
+      if (asyncMap != null) {
+        asyncMap.remove(key)
+                .onSuccess(resumer::accept)
+                .onFailure(err -> resumer.accept(new RuntimeError("distributedRemove error: " + err.getMessage(), source, offset, err)));
+      }
+      else {
+        vertx.sharedData()
+             .getAsyncMap(map)
+             .onSuccess(aMap -> {
+               asyncMaps.put(map, aMap);
+               aMap.remove(key)
+                   .onSuccess(resumer::accept)
+                   .onFailure(err -> resumer.accept(new RuntimeError("distributedRemove error: " + err.getMessage(), source, offset, err)));
+
+             })
+             .onFailure(err -> resumer.accept(new RuntimeError("distributedRemove error: " + err.getMessage(), source, offset, err)));
+      }
+    });
+    return null;
+  }
+  public static Object distributedRemoveData;
 }

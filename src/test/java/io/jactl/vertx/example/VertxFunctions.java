@@ -17,14 +17,18 @@
 
 package io.jactl.vertx.example;
 
-import io.jactl.Jactl;
-import io.jactl.VertxBaseTest;
+import io.jactl.*;
 import io.jactl.runtime.*;
 import io.jactl.vertx.JactlVertxEnv;
 import io.jactl.vertx.JsonFunctions;
-import io.jactl.JactlEnv;
 
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -47,13 +51,34 @@ public class VertxFunctions {
    * @param env  the Jactl env (which will be a JactlVertxEnv)
    */
   public static void registerFunctions(JactlEnv env) {
-    webClient = WebClient.create(((JactlVertxEnv)env).vertx());
+    Vertx vertx = ((JactlVertxEnv) env).vertx();
+    var options = new WebClientOptions();
+    String poolSize = System.getProperty("CONNECTION_POOL_SIZE");
+    if (poolSize != null) {
+      options = options.setMaxPoolSize(Integer.parseInt(poolSize));
+      System.out.println("Setting vertx web client pool size to " + poolSize);
+    }
+    webClient = WebClient.create(vertx, options);
 
     Jactl.function()
          .name("sendReceiveJson")
          .param("url")
          .param("request")
          .impl(VertxFunctions.class, "sendReceiveJson")
+         .register();
+
+    Jactl.function()
+         .name("respond")
+         .param("responseId")
+         .param("statusCode")
+         .param("response")
+         .impl(VertxFunctions.class, "respond")
+         .register();
+
+    Jactl.function()
+         .name("checkpointsEnabled")
+         .param("status")
+         .impl(VertxFunctions.class, "checkpointsEnabled")
          .register();
   }
 
@@ -62,10 +87,9 @@ public class VertxFunctions {
    * Only used by JUnit tests (see {@link VertxBaseTest}).
    */
   public static void deregisterFunctions() {
-    Jactl.deregister("sendReceive");
-
-    // Must reset this field, or we will get an error when we try to re-register the function
-    sendReceiveJsonData = null;
+    Jactl.deregister("sendReceiveJson");
+    Jactl.deregister("respond");
+    Jactl.deregister("checkpointsEnabled");
   }
 
   /**
@@ -78,25 +102,68 @@ public class VertxFunctions {
    * @return the response message as a Map
    */
   public static Map sendReceiveJson(Continuation c, String source, int offset, String url, Object request) {
-    Continuation.suspendNonBlocking((context, resumer) -> {
+    Continuation.suspendNonBlocking(source, offset, url, (context, urlValue, resumer) -> {
       try {
-        webClient.postAbs(url)
+        webClient.postAbs((String)urlValue)
                  .sendJson(request)
                  .onSuccess(response -> {
-                   var body = JsonFunctions.fromJson(response.bodyAsString(), source, offset);
+                   String json = response.bodyAsString();
+                   var body = json == null ? null : JsonFunctions.fromJson(json, source, offset);
                    var name = response.statusCode() / 100 != 2 ? "errorMsg" : "response";
-                   resumer.accept(Map.of("statusCode", response.statusCode(), name, body));
+                   resumer.accept(Utils.mapOf("statusCode", response.statusCode(), name, body));
                  })
                  .onFailure(res -> {
                    // Unexpected error
-                   resumer.accept(new RuntimeError("Error invoking " + url, source, offset, res));
+                   resumer.accept(new RuntimeError("Error invoking " + urlValue, source, offset, res));
                  });
       }
-      catch (Exception e) {
-        resumer.accept(new RuntimeError("Error invoking " + url, source, offset, e));
+      catch (Throwable e) {
+        resumer.accept(new RuntimeError("Error invoking " + urlValue, source, offset, e));
       }
     });
     return null;       // never happens since function is async
   }
   public static Object sendReceiveJsonData;
+
+  ///////////////////////////////
+
+  private static Map<Long,HttpServerResponse> responses = new HashMap<>();
+  private static long responseId = System.currentTimeMillis() * 1_000_000;
+
+  public static boolean respond(long responseId, int status, Object responseResult) {
+    HttpServerResponse response = null;
+    synchronized (responses) {
+      response = responses.get(responseId);
+    }
+    if (response == null) {
+      // Probably due to recovering checkpointed state in new process so response no longer exists
+      return false;
+    }
+
+    response.setStatusCode(status)
+            .end(Json.encode(responseResult))
+            .onFailure(err -> err.printStackTrace());
+    return true;
+  }
+  public static Object respondData;
+
+  public static long registerResponse(HttpServerResponse response) {
+    synchronized (responses) {
+      long id = responseId++;
+      responses.put(id, response);
+      return id;
+    }
+  }
+
+  public static void deregisterResponse(long responseId) {
+    synchronized (responses) {
+      responses.remove(responseId);
+    }
+  }
+
+  public static Object checkpointsEnabled(boolean state) {
+    JactlVertxEnv.checkpointEnabled.set(state);
+    return null;
+  }
+  public static Object checkpointsEnabledData;
 }
