@@ -68,8 +68,9 @@ public class ScriptInfo {
     this.lastCheckTime = System.currentTimeMillis();
   }
 
-  public static void compileScripts(Map<String,Object> globals, JactlContext context, Vertx vertx) throws IOException {
+  public static List<String> compileScripts(Map<String,Object> globals, JactlContext context, Vertx vertx) throws IOException {
     var futures = new ArrayList<CompletableFuture>();
+    var scriptNames = new ArrayList<String>();
     Stream.of(Objects.requireNonNull(new File(SCRIPT_DIR).listFiles()))
           .filter(file -> !file.isDirectory())
           .map(File::getName)
@@ -78,6 +79,7 @@ public class ScriptInfo {
           .forEach(name -> {
             CompletableFuture f = new CompletableFuture();
             futures.add(f);
+            scriptNames.add(name);
             findScript(name, globals, context, vertx, scriptInfo -> f.complete(scriptInfo));
           });
     futures.forEach(f -> {
@@ -89,6 +91,7 @@ public class ScriptInfo {
         throw new RuntimeException(e);
       }
     });
+    return scriptNames;
   }
 
   /**

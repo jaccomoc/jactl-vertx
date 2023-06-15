@@ -76,6 +76,7 @@ public class JsonFunctions {
          .param("map")
          .param("key")
          .param("value")
+         .param("ttl", 0)
          .impl(JsonFunctions.class,"distributedPut")
          .register();
 
@@ -167,7 +168,7 @@ public class JsonFunctions {
     }
   }
 
-  public static Object distributedPut(Continuation c, String source, int offset, String map, String key, Object value) {
+  public static Object distributedPut(Continuation c, String source, int offset, String map, String key, Object value, int ttlMs) {
     validateMapName(map, source, offset);
     Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
       var asyncMap = asyncMaps.get(map);
@@ -181,10 +182,16 @@ public class JsonFunctions {
              .getAsyncMap(map)
              .onSuccess(aMap -> {
                asyncMaps.put(map, aMap);
-               aMap.put(key, value)
-                   .onSuccess(res -> resumer.accept(value))
-                   .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
-
+               if (ttlMs == 0) {
+                 aMap.put(key, value)
+                     .onSuccess(res -> resumer.accept(value))
+                     .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
+               }
+               else {
+                 aMap.put(key, value, ttlMs)
+                     .onSuccess(res -> resumer.accept(value))
+                     .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
+               }
              })
              .onFailure(err -> resumer.accept(new RuntimeError("distributedPut error: " + err.getMessage(), source, offset, err)));
       }
