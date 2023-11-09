@@ -20,7 +20,6 @@ package io.jactl.vertx.example;
 import io.jactl.*;
 import io.jactl.runtime.*;
 import io.jactl.vertx.JactlVertxEnv;
-import io.jactl.vertx.JsonFunctions;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
@@ -39,7 +38,7 @@ import java.util.Map;
  *   <dt>sendReceiveJson</dt><dd>Send a JSON request and wait for a response</dd>
  * </dl>
  */
-public class VertxFunctions {
+public class ExampleFunctions {
 
   private static WebClient webClient;
 
@@ -64,7 +63,7 @@ public class VertxFunctions {
          .name("sendReceiveJson")
          .param("url")
          .param("request")
-         .impl(VertxFunctions.class, "sendReceiveJson")
+         .impl(ExampleFunctions.class, "sendReceiveJson")
          .register();
 
     Jactl.function()
@@ -72,13 +71,13 @@ public class VertxFunctions {
          .param("responseId")
          .param("statusCode")
          .param("response")
-         .impl(VertxFunctions.class, "respond")
+         .impl(ExampleFunctions.class, "respond")
          .register();
 
     Jactl.function()
          .name("checkpointsEnabled")
          .param("status")
-         .impl(VertxFunctions.class, "checkpointsEnabled")
+         .impl(ExampleFunctions.class, "checkpointsEnabled")
          .register();
   }
 
@@ -108,7 +107,7 @@ public class VertxFunctions {
                  .sendJson(request)
                  .onSuccess(response -> {
                    String json = response.bodyAsString();
-                   var body = json == null ? null : JsonFunctions.fromJson(json, source, offset);
+                   var body = json == null ? null : io.jactl.runtime.Json.fromJson(json, source, offset);
                    var name = response.statusCode() / 100 != 2 ? "errorMsg" : "response";
                    resumer.accept(Utils.mapOf("statusCode", response.statusCode(), name, body));
                  })

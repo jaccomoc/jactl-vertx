@@ -18,15 +18,14 @@
 package io.jactl.vertx.example;
 
 import com.hazelcast.config.Config;
-import io.jactl.Utils;
+import io.jactl.runtime.JsonDecoder;
 import io.jactl.vertx.JactlVertxEnv;
-import io.jactl.vertx.JsonFunctions;
+import io.jactl.vertx.VertxFunctions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.web.Router;
@@ -161,8 +160,8 @@ public class ExampleWebServer {
   private static void init(Vertx vtx, int threads, String podId) throws IOException, ExecutionException, InterruptedException {
     vertx = vtx;
     JactlVertxEnv env = new JactlVertxEnv(vertx, podId);
+    ExampleFunctions.registerFunctions(env);
     VertxFunctions.registerFunctions(env);
-    JsonFunctions.registerFunctions(env);
     jactlContext = JactlContext.create().environment(env).build();
 
     log("Compiling scripts");
@@ -190,7 +189,7 @@ public class ExampleWebServer {
       // Helper to encode an Exception as a Map
       Function<Throwable, String> errMsg = err -> err.getClass().getName() + ": " + err.getMessage();
 
-      Function<Buffer, Object> fromJson = buf -> JsonFunctions.fromJson(buf.toString(), "", 0);
+      Function<Buffer, Object> fromJson = buf -> JsonDecoder.get(buf.toString(), "", 0);
 
       // Configure HTTP server router to handle inbound requests
       Router router = Router.router(vertx);
@@ -209,7 +208,7 @@ public class ExampleWebServer {
           }
           else {
             request.bodyHandler(buf -> {
-              long responseId = VertxFunctions.registerResponse(response);
+              long responseId = ExampleFunctions.registerResponse(response);
               // Pass in body of request bound to global variable "request"
               try {
                 Map<String, Object> bindings = new LinkedHashMap<>(globals) {{

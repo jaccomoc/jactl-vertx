@@ -18,10 +18,10 @@
 package io.jactl;
 
 import io.jactl.vertx.JactlVertxEnv;
-import io.jactl.vertx.JsonFunctions;
+import io.jactl.vertx.VertxFunctions;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
-import io.jactl.vertx.example.VertxFunctions;
+import io.jactl.vertx.example.ExampleFunctions;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -44,13 +44,13 @@ public class VertxBaseTest {
   protected void init(Vertx vertx) {
     this.vertx = vertx;
     jactlEnv = new JactlVertxEnv(vertx);
-    JsonFunctions.registerFunctions(jactlEnv);
     VertxFunctions.registerFunctions(jactlEnv);
+    ExampleFunctions.registerFunctions(jactlEnv);
   }
 
   protected void cleanUp() {
-    JsonFunctions.deregisterFunctions();
     VertxFunctions.deregisterFunctions();
+    ExampleFunctions.deregisterFunctions();
     assertTrue(testCount > 0);
     assertEquals(testCount, counter);
   }

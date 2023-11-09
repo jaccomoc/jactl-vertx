@@ -42,11 +42,13 @@ public class ScriptInfo {
   private static final String                  SCRIPT_DIR = "scripts";
   // Map of scripts keyed on URI
   private static       Map<String, ScriptInfo> scripts    = new ConcurrentHashMap<>();
+  public  static       boolean                 checkForModifications = true;
 
   public String      name;               // The script "name" (corresponds to the uri)
   public JactlScript script;             // The compiled script
   public long        modificationTime;   // File modification time
   public long        lastCheckTime;      // Time we last checked for file modification
+
 
   // Status code to use if error finding/compiling script:
   //   404 - no such script
@@ -154,6 +156,9 @@ public class ScriptInfo {
    * @return true if file has changed
    */
   private static boolean fileIsModified(ScriptInfo scriptInfo) {
+    if (!checkForModifications) {
+      return false;
+    }
     // Only check file system every 5 seconds
     boolean isModified = false;
     long    now        = System.currentTimeMillis();

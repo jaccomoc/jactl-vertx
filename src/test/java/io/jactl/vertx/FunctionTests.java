@@ -69,41 +69,6 @@ public class FunctionTests extends VertxBaseTest {
   }
 
   @Test
-  void jsonFunctions(VertxTestContext testContext) {
-    testRunner(testContext)
-      .test("[:].toJsonVertx()", "{}")
-      .test("[].toJsonVertx()", "[]")
-      .test("[a:1].toJsonVertx()", "{\"a\":1}")
-      .test("1.toJsonVertx()", "1")
-      .test("1.toJsonVertx().fromJsonVertx()", 1)
-      .test("1L.toJsonVertx()", "1")
-      .test("1L.toJsonVertx().fromJsonVertx()", 1)
-      .test("1234567890123456L.toJsonVertx().fromJsonVertx()", 1234567890123456L)
-      .test("'abc'.toJsonVertx()", "\"abc\"")
-      .test("'abc'.toJsonVertx().fromJsonVertx()", "abc")
-      .test("''.toJsonVertx()", "\"\"")
-      .test("''.toJsonVertx().fromJsonVertx()", "")
-      .test("1.234.toJsonVertx()", "1.234")
-      .testError("'.234'.fromJsonVertx()", "unexpected character")
-      .test("1.234.toJsonVertx().fromJsonVertx()", "#1.234")
-      .test("0.0000000000000000001234.toJsonVertx().fromJsonVertx()", "#0.0000000000000000001234")
-      .testError("'1.2.3'.fromJsonVertx()", "error decoding json")
-      .test("'\"\"'.toJsonVertx()", "\"\\\"\\\"\"")
-      .test("[a:1,b:[1,2,[c:'abc']]].toJsonVertx()", "{\"a\":1,\"b\":[1,2,{\"c\":\"abc\"}]}")
-      .test("def f = [a:1,b:[1,2,[c:'abc']]].toJsonVertx; f()", "{\"a\":1,\"b\":[1,2,{\"c\":\"abc\"}]}")
-      .test("def x = [a:1,b:[1,2,[c:'abc']]]; x.toJsonVertx()", "{\"a\":1,\"b\":[1,2,{\"c\":\"abc\"}]}")
-      .test("def x = [a:1,b:[1,2,[c:'abc']]]; def f = x.toJsonVertx; f()", "{\"a\":1,\"b\":[1,2,{\"c\":\"abc\"}]}")
-      .test("[a:1].toJsonVertx().fromJsonVertx()", Map.of("a", 1))
-      .testError("''.fromJsonVertx()", "no content")
-      .test("'{}'.fromJsonVertx()", Map.of())
-      .test("'[]'.fromJsonVertx()", List.of())
-      .testError("'{a}'.fromJsonVertx()", "unexpected character")
-      .test("'{\"a b c\":123}'.fromJsonVertx()", Map.of("a b c", 123))
-      .test("'{\"a\":1,\"b\":[1,2,{\"c\":\"abc\"}]}'.fromJsonVertx().toString()", "[a:1, b:[1, 2, [c:'abc']]]")
-      .run();
-  }
-
-  @Test
   void sendReceive(VertxTestContext testContext) {
     globals.put("url", "http://localhost:" + serverPort + "/currencyConversion");
 
