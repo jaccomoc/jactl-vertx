@@ -80,9 +80,9 @@ publishing {
         }
       }
     }
-    mavenTestJar(MavenPublication) {
-      artifacts = [testJar]
-    }
+//    mavenTestJar(MavenPublication) {
+//      artifacts = [testJar]
+//    }
   }
   repositories {
     maven {
