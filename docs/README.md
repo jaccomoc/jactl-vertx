@@ -141,45 +141,7 @@ functionClasses  = [ 'io.jactl.vertx.JsonFunctions',
 
 ## Functions
 
-There are currently two Jactl methods for converting to/from JSON provided by the `jactl-vertx` library.
-In addition, an example of a Jactl global function called `sendReceiveJson()` is provided in the `tests` jar.
-
-### Object.toJson()
-
-To convert a Jactl object to a JSON string use the method called `toJson()`:
-```groovy
-> [name:'Fred Smith', address:['123 High St', 'Faraway', 'Australia']].toJson()
-{"name":"Fred Smith","address":["123 High St","Faraway","Australia"]}
-> class User { def name; def userId }
-> new User('Jane Doe', 'janed').toJson()
-{"name":"Jane Doe","userId":"janed"}
-```
-
-### String.fromJson()
-
-The `fromJson()` method is a new method for the String class which, given a JSON string, will convert from that
-string back in to a Jactl object:
-```groovy
-> '{"name":"Jane Doe","userId":"janed"}'.fromJson()
-[name:'Jane Doe', userId:'janed']
-```
-
-If the result is a Map. you can, of course, convert the Map into the actual desired type by coercing the Map
-the right type.
-For example:
-```groovy
-> class User { def name; def userId }
-> def json = new User('Jane Doe', 'janed').toJson()
-{"name":"Jane Doe","userId":"janed"}
-> def userMap = json.fromJson()
-[name:'Jane Doe', userId:'janed']
-> userMap instanceof Map
-true
-> def user = json.fromJson() as User
-[name:'Jane Doe', userId:'janed']
-> user instanceof User
-true
-```
+An example of a Jactl global function called `sendReceiveJson()` is provided in the `tests` jar.
 
 ### sendReceiveJson(String url, def request)
 
@@ -216,7 +178,7 @@ Here are some examples where an error occurrs:
 
 # Example Application
 
-In the `tests` jar is an example application showing how to ingrate a simple Vert.x based web server with Jactl
+In the `tests` jar is an example application showing how to integrate a simple Vert.x based web server with Jactl
 scripting.
 
 The server listens for JSON requests and looks for the URI portion of the URL to work out what script to
@@ -230,7 +192,7 @@ The application will cache the compiled script so that it doesn't need to recomp
 monitors the source code for any changes (every 5 seconds), and if it has changed it will recompile it
 if another request for that script comes in.
 
-To run the example application create a subdirectory called `scripts` under the location where you are
+To run the example application, create a subdirectory called `scripts` under the location where you are
 going to run from and then add the `jactl-vertx` jar and `jactl-vertx` `tests` jar to the java classpath
 and invoke `io.jactl.vertx.example.ExampleWebServer`.
 By default, it will listen on a random port:
