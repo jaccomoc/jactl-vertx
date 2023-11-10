@@ -50,8 +50,7 @@ not published in Maven Central):
 * Java 11+
 * Jactl 1.3.0
 * Gradle 8.0.2
-* Vert.x 4.4.1
-* jackson-databind 2.0.1
+* Vert.x 4.4.6
 
 ## Build
 
