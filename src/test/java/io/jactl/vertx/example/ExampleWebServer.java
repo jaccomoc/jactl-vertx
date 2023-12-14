@@ -18,6 +18,7 @@
 package io.jactl.vertx.example;
 
 import com.hazelcast.config.Config;
+import io.jactl.Utils;
 import io.jactl.runtime.JsonDecoder;
 import io.jactl.vertx.JactlVertxEnv;
 import io.jactl.vertx.VertxFunctions;
@@ -26,6 +27,9 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.web.Router;
@@ -120,12 +124,12 @@ public class ExampleWebServer {
     }
 
     // Default values for global vars to be passed in to each script
-    globals = Map.of("request",    new LinkedHashMap<>(),
-                     "responseId", 0L,
-                     "host",      HOST,
-                     "port",      PORT,
-                     "baseUrl",   "http://" + HOST + ":" + PORT + pathPrefix,
-                     "startTime", START_TIME);
+    globals = Utils.mapOf("request", new LinkedHashMap<>(),
+                          "responseId", 0L,
+                          "host", HOST,
+                          "port", PORT,
+                          "baseUrl",   "http://" + HOST + ":" + PORT + pathPrefix,
+                          "startTime", START_TIME);
 
     if (Boolean.getBoolean("CLUSTERED")) {
       log("Clustered: namespace=" + System.getProperty("KUBERNETES_NAMESPACE") + ", service-name=" + System.getProperty("SERVICE_NAME"));
@@ -141,8 +145,8 @@ public class ExampleWebServer {
         @Override public void nodeLeft(String nodeID)  { log("Node left:  " + nodeID); }
       });
       CompletableFuture<Vertx> vertxFuture = new CompletableFuture<>();
-      var options = new VertxOptions().setClusterManager(mgr)
-                                      .setWorkerPoolSize(workerPoolSize);
+      VertxOptions options = new VertxOptions().setClusterManager(mgr)
+                                               .setWorkerPoolSize(workerPoolSize);
       Vertx.clusteredVertx(options)
            .onSuccess(result -> vertxFuture.complete(result))
            .onFailure(err -> { err.printStackTrace(); System.exit(1); });
@@ -184,7 +188,7 @@ public class ExampleWebServer {
 
     @Override
     public void start() throws Exception {
-      var server = vertx.createHttpServer();
+      HttpServer server = vertx.createHttpServer();
 
       // Helper to encode an Exception as a Map
       Function<Throwable, String> errMsg = err -> err.getClass().getName() + ": " + err.getMessage();
@@ -194,8 +198,8 @@ public class ExampleWebServer {
       // Configure HTTP server router to handle inbound requests
       Router router = Router.router(vertx);
       router.route(pathPrefix + "/:script").handler(ctx -> {
-        var request  = ctx.request();
-        var response = ctx.response();
+        HttpServerRequest  request  = ctx.request();
+        HttpServerResponse response = ctx.response();
         request.pause();                              // Pause while finding/compiling script
 
         // Find and execute script with name of uri (if script exists)
@@ -211,7 +215,7 @@ public class ExampleWebServer {
               long responseId = ExampleFunctions.registerResponse(response);
               // Pass in body of request bound to global variable "request"
               try {
-                Map<String, Object> bindings = new LinkedHashMap<>(globals) {{
+                Map<String, Object> bindings = new LinkedHashMap(globals) {{
                   put("request", fromJson.apply(buf));
                   put("responseId", responseId);
                 }};
@@ -219,8 +223,8 @@ public class ExampleWebServer {
                 // Invoke script with given bindings for global variables
                 scriptInfo.script.run(bindings, result -> {
                   if (!response.ended()) {
-                    var responseResult = result instanceof Exception ? errMsg.apply((Exception) result) : result;
-                    int status         = result instanceof DieError ? 400 : result instanceof Exception ? 500 : 200;
+                    Object responseResult = result instanceof Exception ? errMsg.apply((Exception) result) : result;
+                    int    status         = result instanceof DieError ? 400 : result instanceof Exception ? 500 : 200;
                     try {
                       response.setStatusCode(status)
                               .end(Json.encode(responseResult))
@@ -251,7 +255,7 @@ public class ExampleWebServer {
       }
       else {
         try {
-          var addr = InetAddress.getByName(HOST);
+          InetAddress addr = InetAddress.getByName(HOST);
           if (!addr.isSiteLocalAddress() && !addr.isLoopbackAddress()) {
             System.err.println(HOST + " is not local to this server");
             System.exit(1);

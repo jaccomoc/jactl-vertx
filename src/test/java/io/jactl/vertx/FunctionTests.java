@@ -17,6 +17,7 @@
 
 package io.jactl.vertx;
 
+import io.jactl.Utils;
 import io.jactl.VertxBaseTest;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
@@ -50,14 +51,14 @@ public class FunctionTests extends VertxBaseTest {
     init(rtoc.vertx());
     server = vertx.createHttpServer();
 
-    final var currencies = Map.of("AUD", 0.6675, "USD", 1.0, "EUR", 1.0843);
-    Router router = Router.router(vertx);
+    final Map<String, Double> currencies = Utils.mapOf("AUD", 0.6675, "USD", 1.0, "EUR", 1.0843);
+    Router                    router     = Router.router(vertx);
     router.route("/currencyConversion").handler(ctx -> {
       ctx.request().bodyHandler(buf -> {
         JsonObject req          = buf.toJsonObject();
         String     currencyCode = req.getString("currencyCode");
         Double     rate         = currencyCode == null ? null : currencies.get(currencyCode);
-        var result = Map.of("status", rate == null ? "fail" : "ok",
+        Map result = Utils.mapOf("status", rate == null ? "fail" : "ok",
                             "amount", rate == null ? 0 : rate * req.getDouble("amount"));
         ctx.response().end(Json.encode(result));
       });

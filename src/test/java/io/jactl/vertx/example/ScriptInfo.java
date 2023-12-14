@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -71,8 +72,8 @@ public class ScriptInfo {
   }
 
   public static List<String> compileScripts(Map<String,Object> globals, JactlContext context, Vertx vertx) throws IOException {
-    var futures = new ArrayList<CompletableFuture>();
-    var scriptNames = new ArrayList<String>();
+    ArrayList<CompletableFuture> futures     = new ArrayList<CompletableFuture>();
+    ArrayList<String>            scriptNames = new ArrayList<String>();
     Stream.of(Objects.requireNonNull(new File(SCRIPT_DIR).listFiles()))
           .filter(file -> !file.isDirectory())
           .map(File::getName)
@@ -108,7 +109,7 @@ public class ScriptInfo {
     if (scriptInfo == null || fileIsModified(scriptInfo)) {
       vertx.executeBlocking(prom -> {
                               synchronized (ScriptInfo.class) {
-                                var entry = compileScript(scriptName, globals, jactlContext);
+                                ScriptInfo entry = compileScript(scriptName, globals, jactlContext);
                                 scripts.put(scriptName, entry);
                                 prom.complete(entry);
                               }
@@ -133,8 +134,8 @@ public class ScriptInfo {
   private static ScriptInfo compileScript(String name, Map<String, Object> globals, JactlContext jactlContext) {
     try {
       long   modificationTime = fileModificationTime(name);
-      String source           = Files.readString(Path.of(SCRIPT_DIR, name + ".jactl"));
-      var    script           = Compiler.compileScript(source, jactlContext, globals);
+      String      source = new String(Files.readAllBytes(Paths.get(SCRIPT_DIR, name + ".jactl")));
+      JactlScript script = Compiler.compileScript(source, jactlContext, globals);
       return new ScriptInfo(name, script, modificationTime);
     }
     catch (JactlError e) {

@@ -87,7 +87,7 @@ public class VertxFunctions {
   public static Object distributedPut(Continuation c, String source, int offset, String map, String key, Object value, int ttlMs) {
     validateMapName(map, source, offset);
     Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
-      var asyncMap = asyncMaps.get(map);
+      AsyncMap<Object, Object> asyncMap = asyncMaps.get(map);
       if (asyncMap != null) {
         asyncMap.put(key, value)
                 .onSuccess(res -> resumer.accept(value))
@@ -119,7 +119,7 @@ public class VertxFunctions {
   public static Object distributedGet(Continuation c, String source, int offset, String map, String key) {
     validateMapName(map, source, offset);
     Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
-      var asyncMap = asyncMaps.get(map);
+      AsyncMap<Object, Object> asyncMap = asyncMaps.get(map);
       if (asyncMap != null) {
         asyncMap.get(key)
                 .onSuccess(resumer::accept)
@@ -145,7 +145,7 @@ public class VertxFunctions {
   public static Object distributedRemove(Continuation c, String source, int offset, String map, String key) {
     validateMapName(map, source, offset);
     Continuation.suspendNonBlocking(source, offset, null, (context, data, resumer) -> {
-      var asyncMap = asyncMaps.get(map);
+      AsyncMap<Object, Object> asyncMap = asyncMaps.get(map);
       if (asyncMap != null) {
         asyncMap.remove(key)
                 .onSuccess(resumer::accept)

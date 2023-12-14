@@ -5,7 +5,7 @@ plugins {
 }
 
 group   'io.jactl'
-version '1.3.1'
+version '1.4.0'
 
 repositories {
   mavenLocal()
@@ -18,7 +18,7 @@ java {
 }
 
 dependencies {
-  implementation group: 'io.jactl', name: 'jactl',            version: '1.3.1'
+  implementation group: 'io.jactl', name: 'jactl',            version: '1.4.0'
   implementation group: 'io.vertx', name: 'vertx-core',       version: '4.4.6'
   implementation group: 'io.vertx', name: 'vertx-web',        version: '4.4.6'
   implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.4.6'
@@ -40,6 +40,7 @@ test {
   useJUnitPlatform()
 }
 
+//// COMMENT OUT BEFORE PUBLISHING
 task testJar(type: Jar) {
   duplicatesStrategy 'exclude'
 
@@ -50,6 +51,7 @@ task testJar(type: Jar) {
 
   archiveClassifier = 'tests'
 }
+////
 
 publishing {
   publications {
@@ -80,9 +82,11 @@ publishing {
         }
       }
     }
+//// COMMENT OUT BEFORE PUBLISHING
     mavenTestJar(MavenPublication) {
       artifacts = [testJar]
     }
+////
   }
   repositories {
     maven {

@@ -77,9 +77,9 @@ public class VertxBaseTest {
     VertxTestContext   testContext;
 
     public TestRunner(VertxTestContext testContext)  { this.testContext = testContext; }
-    public TestRunner test(String code, Object expected)                               { return addTest(List.of(), code, expected); }
+    public TestRunner test(String code, Object expected)                               { return addTest(Utils.listOf(), code, expected); }
     public TestRunner test(List<String> classCode, String scriptCode, Object expected) { return addTest(classCode, scriptCode, expected); }
-    public TestRunner testError(String scriptCode, String error)                       { return addTestError(List.of(), scriptCode, error); }
+    public TestRunner testError(String scriptCode, String error)                       { return addTestError(Utils.listOf(), scriptCode, error); }
     public void run() {
       testCount = tests.size();
       doRun();
@@ -131,12 +131,12 @@ public class VertxBaseTest {
                                                  .debug(debugLevel)
                                                  .build();
 
-      var bindings = createGlobals();
+      Map<String, Object> bindings = createGlobals();
 
       classCode.forEach(code -> compileClass(code, jactlContext, packageName));
 
-      var    compiled = compileScript(scriptCode, jactlContext, packageName, bindings);
-      Thread thread   = Thread.currentThread();
+      JactlScript compiled = compileScript(scriptCode, jactlContext, packageName, bindings);
+      Thread      thread   = Thread.currentThread();
       compiled.run(bindings, result -> {
         testContext.verify(() -> {
           if (testError) {
@@ -182,7 +182,7 @@ public class VertxBaseTest {
   }
 
   protected Map<String, Object> createGlobals() {
-    var map = new HashMap<String, Object>();
+    HashMap<String, Object> map = new HashMap<String, Object>();
     map.putAll(globals);
     return map;
   }

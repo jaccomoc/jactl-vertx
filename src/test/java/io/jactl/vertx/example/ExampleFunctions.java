@@ -50,9 +50,9 @@ public class ExampleFunctions {
    * @param env  the Jactl env (which will be a JactlVertxEnv)
    */
   public static void registerFunctions(JactlEnv env) {
-    Vertx vertx = ((JactlVertxEnv) env).vertx();
-    var options = new WebClientOptions();
-    String poolSize = System.getProperty("CONNECTION_POOL_SIZE");
+    Vertx            vertx    = ((JactlVertxEnv) env).vertx();
+    WebClientOptions options  = new WebClientOptions();
+    String           poolSize = System.getProperty("CONNECTION_POOL_SIZE");
     if (poolSize != null) {
       options = options.setMaxPoolSize(Integer.parseInt(poolSize));
       System.out.println("Setting vertx web client pool size to " + poolSize);
@@ -107,8 +107,8 @@ public class ExampleFunctions {
                  .sendJson(request)
                  .onSuccess(response -> {
                    String json = response.bodyAsString();
-                   var body = json == null ? null : io.jactl.runtime.Json.fromJson(json, source, offset);
-                   var name = response.statusCode() / 100 != 2 ? "errorMsg" : "response";
+                   Object body = json == null ? null : io.jactl.runtime.Json.fromJson(json, source, offset);
+                   String name = response.statusCode() / 100 != 2 ? "errorMsg" : "response";
                    resumer.accept(Utils.mapOf("statusCode", response.statusCode(), name, body));
                  })
                  .onFailure(res -> {

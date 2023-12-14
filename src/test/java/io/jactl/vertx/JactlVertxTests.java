@@ -17,6 +17,7 @@
 
 package io.jactl.vertx;
 
+import io.jactl.Utils;
 import io.jactl.VertxBaseTest;
 import io.vertx.junit5.RunTestOnContext;
 import io.vertx.junit5.VertxExtension;
@@ -53,8 +54,8 @@ public class JactlVertxTests extends VertxBaseTest {
       .test("sleep(1,2D)", 2D)
       .test("sleep(1,2)", 2)
       .test("sleep(1,2.0)", "#2.0")
-      .test("sleep(1,[])", List.of())
-      .test("sleep(1,[:])", Map.of())
+      .test("sleep(1,[])", Utils.listOf())
+      .test("sleep(1,[:])", Utils.mapOf())
       .test("sleep(1,{it*it})(2)", 4)
       .test("var x=1L; var y=1D; sleep(1,2)", 2)
       .test("sleep(1,2) + sleep(1,3)", 5)
