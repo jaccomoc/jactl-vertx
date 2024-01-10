@@ -17,7 +17,7 @@
 
 package io.jactl.vertx.example;
 
-import io.jactl.Compiler;
+import io.jactl.Jactl;
 import io.jactl.JactlContext;
 import io.jactl.JactlError;
 import io.jactl.JactlScript;
@@ -26,7 +26,6 @@ import io.vertx.core.Vertx;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ScriptInfo {
@@ -135,7 +133,7 @@ public class ScriptInfo {
     try {
       long   modificationTime = fileModificationTime(name);
       String      source = new String(Files.readAllBytes(Paths.get(SCRIPT_DIR, name + ".jactl")));
-      JactlScript script = Compiler.compileScript(source, jactlContext, globals);
+      JactlScript script = Jactl.compileScript(source, globals, jactlContext);
       return new ScriptInfo(name, script, modificationTime);
     }
     catch (JactlError e) {

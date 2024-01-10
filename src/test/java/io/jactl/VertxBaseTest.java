@@ -174,11 +174,11 @@ public class VertxBaseTest {
   }
 
   public void compileClass(String source, JactlContext jactlContext, String packageName) {
-    Compiler.compileClass(source, jactlContext, packageName);
+    Jactl.compileClass(source, jactlContext, packageName);
   }
 
   public JactlScript compileScript(String source, JactlContext jactlContext, String packageName, Map<String, Object> bindings) {
-    return Compiler.compileScript(source, jactlContext, packageName, bindings);
+    return Jactl.compileScript(source, bindings, jactlContext, packageName);
   }
 
   protected Map<String, Object> createGlobals() {
