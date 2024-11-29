@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class JactlVertxTests extends VertxBaseTest {
 
   @RegisterExtension
-  RunTestOnContext rtoc = new RunTestOnContext();
+  static RunTestOnContext rtoc = new RunTestOnContext();
 
   @BeforeEach
   void prepare(VertxTestContext testContext) {

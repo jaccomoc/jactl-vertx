@@ -44,7 +44,7 @@ public class FunctionTests extends VertxBaseTest {
   int serverPort;
 
   @RegisterExtension
-  RunTestOnContext rtoc = new RunTestOnContext();
+  static RunTestOnContext rtoc = new RunTestOnContext();
 
   @BeforeEach
   void prepare(VertxTestContext testContext) {

@@ -5,7 +5,7 @@ plugins {
 }
 
 group   'io.jactl'
-version '2.0.0'
+version '2.1.0'
 
 repositories {
   mavenLocal()
@@ -20,14 +20,14 @@ java {
 }
 
 dependencies {
-  implementation group: 'io.jactl', name: 'jactl',            version: '2.0.0'
-  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.4.6'
-  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.4.6'
-  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.4.6'
-  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.4.6'
+  implementation group: 'io.jactl', name: 'jactl',            version: '2.1.0'
+  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.11'
+  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.11'
+  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.11'
+  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.5.11'
   implementation group: 'com.hazelcast', name: 'hazelcast-kubernetes', version: '2.2.3'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.3'
-  testImplementation 'io.vertx:vertx-junit5:4.4.6'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+  testImplementation 'io.vertx:vertx-junit5:4.5.11'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
   testRuntimeOnly    'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 
@@ -43,16 +43,16 @@ test {
 }
 
 //// COMMENT OUT BEFORE PUBLISHING
-task testJar(type: Jar) {
-  duplicatesStrategy 'exclude'
-
-  from sourceSets.test.output
-  from {
-    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-  }
-
-  archiveClassifier = 'tests'
-}
+//task testJar(type: Jar) {
+//  duplicatesStrategy 'exclude'
+//
+//  from sourceSets.test.output
+//  from {
+//    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+//  }
+//
+//  archiveClassifier = 'tests'
+//}
 ////
 
 publishing {
@@ -85,9 +85,9 @@ publishing {
       }
     }
 //// COMMENT OUT BEFORE PUBLISHING
-    mavenTestJar(MavenPublication) {
-      artifacts = [testJar]
-    }
+//    mavenTestJar(MavenPublication) {
+//      artifacts = [testJar]
+//    }
 ////
   }
   repositories {
