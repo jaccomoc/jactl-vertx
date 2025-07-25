@@ -5,7 +5,7 @@ plugins {
 }
 
 group   'io.jactl'
-version '2.2.0'
+version '2.3.0'
 
 repositories {
   mavenLocal()
@@ -20,7 +20,7 @@ java {
 }
 
 dependencies {
-  implementation group: 'io.jactl', name: 'jactl',            version: '2.2.0'
+  implementation group: 'io.jactl', name: 'jactl',            version: '2.3.0'
   implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.11'
   implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.11'
   implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.11'

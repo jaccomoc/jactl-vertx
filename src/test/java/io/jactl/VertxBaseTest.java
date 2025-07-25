@@ -125,11 +125,11 @@ public class VertxBaseTest {
 
     try {
       JactlContext jactlContext = JactlContext.create()
-                                                 .environment(jactlEnv)
-                                                 .evaluateConstExprs(true)
-                                                 .replMode(replMode)
-                                                 .debug(debugLevel)
-                                                 .build();
+                                              .environment(jactlEnv)
+                                              .evaluateConstExprs(true)
+                                              .replMode(replMode)
+                                              .debug(debugLevel)
+                                              .build();
 
       Map<String, Object> bindings = createGlobals();
 
