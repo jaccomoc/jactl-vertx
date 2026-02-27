@@ -5,7 +5,7 @@ plugins {
 }
 
 group   'io.jactl'
-version '2.3.0'
+version '2.4.0'
 
 repositories {
   mavenLocal()
@@ -20,14 +20,14 @@ java {
 }
 
 dependencies {
-  implementation group: 'io.jactl', name: 'jactl',            version: '2.3.0'
-  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.11'
-  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.11'
-  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.11'
-  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.5.11'
+  implementation group: 'io.jactl', name: 'jactl',            version: '2.4.0'
+  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.22'
+  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.22'
+  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.22'
+  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.5.22'
   implementation group: 'com.hazelcast', name: 'hazelcast-kubernetes', version: '2.2.3'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-  testImplementation 'io.vertx:vertx-junit5:4.5.11'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+  testImplementation 'io.vertx:vertx-junit5:4.5.22'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
   testRuntimeOnly    'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 
@@ -90,7 +90,7 @@ publishing {
 //    }
 ////
   }
-//  repositories {
+  repositories {
 //    maven {
 //      url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
 //      credentials(PasswordCredentials) {
@@ -98,9 +98,21 @@ publishing {
 //        password = ossrhPassword
 //      }
 //    }
-//  }
+    // Local repository for bundling release files
+    maven {
+      name = 'releaseBundle'
+      url = layout.buildDirectory.dir("release-bundle")
+    }
+  }
+}
+    
+signing {
+  sign publishing.publications.mavenJava
 }
 
-//signing {
-//  sign publishing.publications.mavenJava
-//}
+// Task to bundle all release artifacts (jars, pom, signatures, checksums)
+tasks.register('bundleReleaseFiles') {
+  group = "Distribution"
+  description = "Assembles all release artifacts into build/release-bundle"
+  dependsOn "publishMavenJavaPublicationToReleaseBundleRepository"
+}
