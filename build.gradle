@@ -106,9 +106,9 @@ publishing {
   }
 }
     
-signing {
-  sign publishing.publications.mavenJava
-}
+//signing {
+//  sign publishing.publications.mavenJava
+//}
 
 // Task to bundle all release artifacts (jars, pom, signatures, checksums)
 tasks.register('bundleReleaseFiles') {
