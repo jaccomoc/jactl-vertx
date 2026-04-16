@@ -43,16 +43,16 @@ test {
 }
 
 //// COMMENT OUT BEFORE PUBLISHING
-task testJar(type: Jar) {
-  duplicatesStrategy 'exclude'
-
-  from sourceSets.test.output
-  from {
-    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-  }
-
-  archiveClassifier = 'tests'
-}
+//task testJar(type: Jar) {
+//  duplicatesStrategy 'exclude'
+//
+//  from sourceSets.test.output
+//  from {
+//    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+//  }
+//
+//  archiveClassifier = 'tests'
+//}
 ////
 
 publishing {
@@ -85,9 +85,9 @@ publishing {
       }
     }
 // COMMENT OUT BEFORE PUBLISHING
-    mavenTestJar(MavenPublication) {
-      artifacts = [testJar]
-    }
+//    mavenTestJar(MavenPublication) {
+//      artifacts = [testJar]
+//    }
 ////
   }
   repositories {
