@@ -130,7 +130,7 @@ public class JactlVertxTests extends VertxBaseTest {
       .test("int x = 1; x += sleep(1,x) + sleep(1,x); x", 3)
       .test("def x = 1; x += sleep(1,x) + sleep(1,x); x", 3)
       .test("def f(int x, long y, String z, double d) { sleep(1,x++); sleep(1,y++); sleep(1,d++); z = sleep(1,z) * sleep(1,x); z + \": x=$x,y=$y,d=$d\" }; f(1,2,'x',3D)", "xx: x=2,y=3,d=4.0")
-      .test("int x = 1; long y = 2; double d = 3; sleep(1, d = sleep(1, y = sleep(1, x += sleep(1,x=3)) + x) + y) + x", 20.0D)
+      .test("int x = 1; long y = 2; double d = 3; sleep(1, d = sleep(1, y = sleep(1, x += sleep(1,x=3)) + x) + y) + x", 20L)
       .test("def x = 1; x ?= sleep(1, null as int); x", 1)
       .test("def f = null; f = { null as int }; def x = 1; x ?= sleep(1, 1) + f(); x", 1)
       .test("def f = null; f = { sleep(1,null) as int }; def x = 1; x ?= f(); x", 1)

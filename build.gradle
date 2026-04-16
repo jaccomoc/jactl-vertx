@@ -5,7 +5,7 @@ plugins {
 }
 
 group   'io.jactl'
-version '2.6.0'
+version '2.7.1'
 
 repositories {
   mavenLocal()
@@ -20,7 +20,7 @@ java {
 }
 
 dependencies {
-  implementation group: 'io.jactl', name: 'jactl',            version: '2.6.0'
+  implementation group: 'io.jactl', name: 'jactl',            version: '2.7.1'
   implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.22'
   implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.22'
   implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.22'
@@ -43,16 +43,16 @@ test {
 }
 
 //// COMMENT OUT BEFORE PUBLISHING
-//task testJar(type: Jar) {
-//  duplicatesStrategy 'exclude'
-//
-//  from sourceSets.test.output
-//  from {
-//    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-//  }
-//
-//  archiveClassifier = 'tests'
-//}
+task testJar(type: Jar) {
+  duplicatesStrategy 'exclude'
+
+  from sourceSets.test.output
+  from {
+    configurations.testRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+
+  archiveClassifier = 'tests'
+}
 ////
 
 publishing {
@@ -85,9 +85,9 @@ publishing {
       }
     }
 // COMMENT OUT BEFORE PUBLISHING
-//    mavenTestJar(MavenPublication) {
-//      artifacts = [testJar]
-//    }
+    mavenTestJar(MavenPublication) {
+      artifacts = [testJar]
+    }
 ////
   }
   repositories {
@@ -106,9 +106,9 @@ publishing {
   }
 }
     
-//signing {
-//  sign publishing.publications.mavenJava
-//}
+signing {
+  sign publishing.publications.mavenJava
+}
 
 // Task to bundle all release artifacts (jars, pom, signatures, checksums)
 tasks.register('bundleReleaseFiles') {
