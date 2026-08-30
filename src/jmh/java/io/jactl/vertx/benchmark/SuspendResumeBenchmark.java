@@ -47,11 +47,11 @@ public class SuspendResumeBenchmark {
     "var slept = 0\n" +
     "\n" +
     "def checkInventory(widget, count) {\n" +
-    "  sleep(0, true) and slept++ if slept < sleepCount\n" +
+    "  sleep(0) if slept++ < sleepCount\n" +
     "  return true\n" +
     "}\n" +
     "\n" +
-    "def processOrder(order) {" +
+    "def processOrder(order) {\n" +
     "    var price    = order.price\n" +
     "    var qty      = order.quantity\n" +
     "    var category = order.category\n" +
