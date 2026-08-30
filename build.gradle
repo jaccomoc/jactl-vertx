@@ -1,7 +1,10 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
 plugins {
   id 'java'
   id 'maven-publish'
   id 'signing'
+  id 'me.champeau.jmh' version '0.7.3'
 }
 
 group   'io.jactl'
@@ -19,6 +22,23 @@ java {
   targetCompatibility = "1.8"
 }
 
+jmh {
+  jmhVersion = '1.37'
+}
+
+// Override the jmh plugin's default toolchain (which follows the `java` block's Java 8) so benchmarks run on Java 25.
+tasks.named('jmhRunBytecodeGenerator') {
+  javaLauncher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(25)
+  }
+}
+
+tasks.named('jmh') {
+  javaLauncher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(25)
+  }
+}
+
 dependencies {
   implementation group: 'io.jactl', name: 'jactl',            version: '2.9.2'
   implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.22'
@@ -30,6 +50,8 @@ dependencies {
   testImplementation 'io.vertx:vertx-junit5:4.5.22'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
   testRuntimeOnly    'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+
+  jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 
   def isMacOS = System.getProperty('os.name').startsWith('Mac OS X')
   def architecture = System.getProperty('os.arch').toLowerCase()
