@@ -24,30 +24,70 @@ java {
 
 jmh {
   jmhVersion = '1.37'
+  // Restrict which benchmarks run, e.g.: ./gradlew jmh -PjmhInclude=VirtualThread
+  // Comma-separated list of regexes matched against the fully-qualified benchmark name
+  // (JMH does a "contains" match, so plain substrings like "VirtualThread" work as wildcards too).
+  if (project.hasProperty('jmhInclude')) {
+    includes = project.property('jmhInclude').toString().split(',').collect { it.trim() }
+  }
+
+  // Override fork count / warmup / measurement iterations, e.g.:
+  //   ./gradlew jmh -PjmhFork=3 -PjmhWarmupIterations=5 -PjmhIterations=10
+  // Falls back to each benchmark class's @Fork/@Warmup/@Measurement annotations when not set.
+  if (project.hasProperty('jmhFork')) {
+    fork = project.property('jmhFork').toString().toInteger()
+  }
+  if (project.hasProperty('jmhWarmupIterations')) {
+    warmupIterations = project.property('jmhWarmupIterations').toString().toInteger()
+  }
+  if (project.hasProperty('jmhIterations')) {
+    iterations = project.property('jmhIterations').toString().toInteger()
+  }
 }
 
-// Override the jmh plugin's default toolchain (which follows the `java` block's Java 8) so benchmarks run on Java 25.
+// Which JVM actually runs the benchmarks, e.g.: ./gradlew jmh -PjmhJavaVersion=21
+// Defaults to 25. Must be >= 21 since the jmh source set is compiled targeting Java 21 (see below).
+def jmhJavaVersion = project.hasProperty('jmhJavaVersion') ? project.property('jmhJavaVersion').toString().toInteger() : 25
+
 tasks.named('jmhRunBytecodeGenerator') {
   javaLauncher = javaToolchains.launcherFor {
-    languageVersion = JavaLanguageVersion.of(25)
+    languageVersion = JavaLanguageVersion.of(jmhJavaVersion)
   }
 }
 
 tasks.named('jmh') {
   javaLauncher = javaToolchains.launcherFor {
-    languageVersion = JavaLanguageVersion.of(25)
+    languageVersion = JavaLanguageVersion.of(jmhJavaVersion)
+  }
+}
+
+// Compile the jmh source set itself (and the classes the bytecode generator produces from it) against
+// Java 21+ so benchmarks can use virtual threads etc, without touching the main library's Java 8 compatibility.
+tasks.named('compileJmhJava') {
+  javaCompiler = javaToolchains.compilerFor {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
+  sourceCompatibility = '21'
+  targetCompatibility = '21'
+}
+
+// Needs a 21+ compiler too, since it compiles JMH-generated wrapper classes against compileJmhJava's
+// class-21 output on its classpath.
+tasks.named('jmhCompileGeneratedClasses') {
+  javaCompiler = javaToolchains.compilerFor {
+    languageVersion = JavaLanguageVersion.of(21)
   }
 }
 
 dependencies {
   implementation group: 'io.jactl', name: 'jactl',            version: '2.9.2'
-  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.22'
-  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.22'
-  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.22'
-  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.5.22'
+  implementation group: 'io.vertx', name: 'vertx-core',       version: '4.5.33'
+  implementation group: 'io.vertx', name: 'vertx-web',        version: '4.5.33'
+  implementation group: 'io.vertx', name: 'vertx-web-client', version: '4.5.33'
+  implementation group: 'io.vertx', name: 'vertx-hazelcast',  version: '4.5.33'
   implementation group: 'com.hazelcast', name: 'hazelcast-kubernetes', version: '2.2.3'
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
-  testImplementation 'io.vertx:vertx-junit5:4.5.22'
+  testImplementation 'io.vertx:vertx-junit5:4.5.33'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
   testRuntimeOnly    'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 
