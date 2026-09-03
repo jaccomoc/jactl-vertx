@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Warmup(iterations = 3, time = 3, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 10, time = 3, timeUnit = TimeUnit.SECONDS)
 @OperationsPerInvocation(100_000)
-@Fork(value = 1, jvmArgs={"-Xms1g", "-ea"})
+@Fork(value = 2, jvmArgs={"-Xms8g", "-Xmx8g", "-ea"})
 public class VirtualThreadBenchmark {
 
   private static String code =
